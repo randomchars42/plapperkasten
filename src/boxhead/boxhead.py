@@ -6,6 +6,7 @@ import time
 
 import signal
 from multiprocessing import Queue
+from queue import Empty
 
 from .log import log
 from boxhead import plugin
@@ -201,9 +202,13 @@ class BoxHead:
         """
 
         self.emit('terminate')
+        self._terminate_signal = True
 
     def run(self) -> None:
         signal.signal(signal.SIGINT, self.on_interrupt)
+
+        self._terminate_signal = False
+
         processes = []
         for i in range(0,3):
             processes.append(plugin.Plugin(
@@ -215,9 +220,14 @@ class BoxHead:
             logger.debug('starting process {}'.format(i))
             processes[i].start()
 
-        time.sleep(4)
-
-        self.emit('terminate')
+        while not self._terminate_signal:
+            try:
+                event: object = self._queue_from_plugins.get(True, 0.1)
+                logger.debug('recieved {}'.format(event))
+            except Empty:
+                pass
+            except ValueError:
+                logger.error('queue from plugins closed')
 
         for i in range(0,3):
             #processes[i].terminate()
