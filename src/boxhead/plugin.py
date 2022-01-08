@@ -89,6 +89,7 @@ class Plugin(Process):
         print('{} running'.format(self.get_name()))
 
         signal.signal(signal.SIGINT, self.on_interrupt)
+        signal.signal(signal.SIGTERM, self.on_interrupt)
 
         while not self._terminate_signal:
             self.on_tick()

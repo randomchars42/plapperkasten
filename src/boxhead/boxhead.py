@@ -206,6 +206,7 @@ class BoxHead:
 
     def run(self) -> None:
         signal.signal(signal.SIGINT, self.on_interrupt)
+        signal.signal(signal.SIGTERM, self.on_interrupt)
 
         self._terminate_signal = False
 
@@ -230,7 +231,6 @@ class BoxHead:
                 logger.error('queue from plugins closed')
 
         for i in range(0,3):
-            #processes[i].terminate()
             processes[i].join()
 
 
