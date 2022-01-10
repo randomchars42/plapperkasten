@@ -15,7 +15,7 @@ setup(
     description='',
     version='0.1.0',
     long_description = (path / 'README.md').read_text(encoding='utf-8'),
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     author='',
     author_email='',
     license='The Unlicense',
