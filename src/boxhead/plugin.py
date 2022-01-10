@@ -1,27 +1,38 @@
 #!/usr/bin/env python3
+"""Base plugin."""
 
 import logging
-from  multiprocessing import Process, Queue
-from queue import Empty
+import multiprocessing
+import queue
 import signal
 
 from boxhead import boxhead
 
 logger = logging.getLogger(__name__)
 
-class Plugin(Process):
+
+class Plugin(multiprocessing.Process):
     """Base class for plugins using their own process.
 
-    Modified after: https://pymotw.com/3/multiprocessing/communication.html
+    Attributes:
+        _name: The name of the plugin that subclasses this class.
+        _tick_interval: The interval with wich `on_tick()` will be
+            called.
+        _terminate_signal: Terminates the process if `True`.
+        _to_plugin: Queue to recieve signals from the main process.
+        _from_plugin: Queue to send signals to the main process.
+        _logger: Logger for records, configured to queue records to
+            the main process.
     """
 
     def __init__(self, name: str, main: boxhead.BoxHead,
-            to_plugin: Queue, from_plugin: Queue) -> None:
+                 to_plugin: multiprocessing.Queue,
+                 from_plugin: multiprocessing.Queue) -> None:
         """Initialises the plugin and then calls `on_init()`.
 
-        All parameters which are passed in by reference may not be stored in
-        this object to avoid concurrent access by different entities to the
-        same resource.
+        All parameters which are passed in by reference may not be
+        stored in this object to avoid concurrent access by different entities
+        to the same resource.
 
         There should be no need to overwrite this function as it calls
         `on_init()` which may more easily be overwriten by subclasses.
@@ -30,17 +41,21 @@ class Plugin(Process):
             name: The name of this plugin as its known to the main
                 process.
             main: The instance of the central module.
+            to_plugin: Queue providing events for the plugins.
+            from_plugin: Queue to get messages to the main process.
         """
 
-        Process.__init__(self)
+        multiprocessing.Process.__init__(self)
         self._name: str = name
-        ##signal.signal(signal.SIGTERM, self.handle_signal)
         self._tick_interval: int = 1
         self._terminate_signal: bool = False
-        self._to_plugin: Queue = to_plugin
-        self._from_plugin: Queue = from_plugin
+        self._to_plugin: multiprocessing.Queue = to_plugin
+        self._from_plugin: multiprocessing.Queue = from_plugin
+
+        self._logger = logging.getLogger(name)
+
         self.on_init(main)
-        print('initialised {}'.format(self.get_name()))
+        self._logger.debug('initialised %s', self.get_name())
 
     def get_name(self) -> str:
         """Returns the name set by `__init__()`.
@@ -60,7 +75,7 @@ class Plugin(Process):
             main: The instance of the central module.
         """
 
-        print('initialising {}'.format(self.get_name()))
+        self._logger.debug('initialising %s', self.get_name())
 
     def on_terminate(self) -> None:
         """Ends execution of the process after a `terminate` event."""
@@ -71,11 +86,13 @@ class Plugin(Process):
         """The place to do your work.
 
         Gets called in regulare intervals detemined by
-        `__tick_interval`.
+        `_tick_interval`.
         """
-        print('{} working'.format(self.get_name()))
+
+        self._logger.debug('%s working', self.get_name())
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
+        #pylint: disable=unused-argument
         """Stop the running process on interrupt.
 
         Args:
@@ -86,7 +103,7 @@ class Plugin(Process):
         self._terminate_signal = True
 
     def run(self) -> None:
-        print('{} running'.format(self.get_name()))
+        self._logger.debug('%s running', self.get_name())
 
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
@@ -98,13 +115,14 @@ class Plugin(Process):
                 if hasattr(self, 'on_' + event):
                     getattr(self, 'on_' + event)()
                 else:
-                    logger.error('no method for event {} defined by {}'.format(
-                        event, self.get_name()))
-            except Empty:
+                    self._logger.error('no method for event %s defined by %s',
+                                       event, self.get_name())
+            except queue.Empty:
                 pass
             except ValueError:
-                logger.error('{} holds a closed queue'.format(
-                    self.get_name()))
+                self._logger.error('%s holds a closed queue', self.get_name())
 
     def __del__(self) -> None:
-        print('{} is stopping'.format(self.get_name()))
+        """Tidies up afterwards."""
+
+        self._logger.debug('%s is stopping', self.get_name())

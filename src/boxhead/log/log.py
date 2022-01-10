@@ -1,42 +1,43 @@
 #!/usr/bin/env python3
+"""Dictionary configuration for logging."""
 
 config = {
     'version': 1,
-    'disable_existing_loggers': True,
     'formatters': {
         'detailed': {
-            'format': '%(asctime)s %(levelname)s %(module)s %(message)s',
+            'format':
+            '%(asctime)s %(name)-15s %(levelname)-8s %(message)s',
         },
         'simple': {
-            'format': '%(levelname)s %(module)s %(message)s',
+            'format': '%(levelname)s %(name)s %(message)s',
         },
     },
     'handlers': {
-        'console':{
-            'level': 'DEBUG',
-            #'level': 'WARNING',
+        'console': {
             'class': 'logging.StreamHandler',
+            #'level': 'INFO',
             'formatter': 'simple',
         },
-        #'file':{
-        #    'level': 'DEBUG',
-        #    'class': 'logging.handlers.RotatingFileHandler',
-        #    'filename': 'log',
-        #    'formatter': 'detailed',
-        #    'maxBytes': 1024,
-        #    'backupCount': 5,
-        #    }
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'boxhead.log',
+            'mode': 'a',
+            'maxBytes': 10000000,
+            'backupCount': 5,
+            'formatter': 'detailed',
+        },
+        'errors': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'boxhead-errors.log',
+            'mode': 'a',
+            'maxBytes': 10000000,
+            'backupCount': 5,
+            'level': 'ERROR',
+            'formatter': 'detailed',
+        },
     },
-    'loggers': {
-        '__main__': {
-            'handlers': ['console'],
-            'propagate': True,
-            'level': 'DEBUG',
-        },
-        'boxhead': {
-            'handlers': ['console'],
-            'propagate': True,
-            'level': 'DEBUG',
-        },
-    }
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['console', 'file', 'errors']
+    },
 }

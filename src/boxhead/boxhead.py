@@ -1,32 +1,52 @@
 #!/usr/bin/env python3.9
+"""BoxHead."""
+#import argparse
+#import importlib
 import logging
-import logging.config
-
-import time
-
+from logging import config
+from logging import handlers
+import multiprocessing
+#import os
+#import pkgutil
+#import pkg_resources
+import queue
 import signal
-from multiprocessing import Queue
-from queue import Empty
+#import sys
+import threading
 
-from .log import log
 from boxhead import plugin
+from boxhead.log import log
 
-logger = logging.getLogger(__name__)
 
 class BoxHead:
     """Main unit for controlling the box.
 
     Loads the config:
     * from 'config/config.ini' (do not edit this)
-    * from 'USER_DIRECTORY/config.ini' (use this file to overwrite values from config/config.ini)
+    * from 'USER_DIRECTORY/config.ini' (use this file to overwrite
+      values from config/config.ini)
     * from the command line if passed in
 
     Loads all plugins (python packages):
     * core plugins from 'plugins/'
     * user plugins from 'USER_DIRECTORY/plugins/'
+
+    Handles logging:
+    Logging is done by its own thread.
+
+    Attributes:
+        _queues_to_plugin: Queues to signal to each plugin.
+        _queue_from_plugin: Queue to get input from all plugins.
+        _logger: The logger to use.
+        _logger_thread: Thread that does the work of logging for all
+            processes.
+        _logger_queue: Queue to the logger thread.
+        _events: Events and their subscribers.
     """
 
-    def get_queue_to_plugin(self, to_whom: str, create: bool = True) -> Queue:
+    def get_queue_to_plugin(self,
+                            to_whom: str,
+                            create: bool = True) -> multiprocessing.Queue:
         """Returns a queue that leads to the given plugin.
 
         Args:
@@ -42,10 +62,10 @@ class BoxHead:
         """
 
         if not hasattr(self, '_queues_to_plugins'):
-            self._queues_to_plugins: dict[str, Queue] = {}
+            self._queues_to_plugins: dict[str, multiprocessing.Queue] = {}
 
-        if create and not to_whom in self._queues_to_plugins.keys():
-            self._queues_to_plugins[to_whom] = Queue()
+        if create and not to_whom in self._queues_to_plugins:
+            self._queues_to_plugins[to_whom] = multiprocessing.Queue()
 
         return self._queues_to_plugins[to_whom]
 
@@ -57,16 +77,16 @@ class BoxHead:
         """
 
         if not hasattr(self, '_queues_to_plugins'):
-            logger.error('no queues to plugins initialised yet')
+            self._logger.error('no queues to plugins initialised yet')
             return
 
-        if to_whom in self._queues_to_plugins.keys():
+        if to_whom in self._queues_to_plugins:
             del self._queues_to_plugins[to_whom]
 
         else:
-            logger.error('no queue to plugin {}'.format(to_whom))
+            self._logger.error('no queue to plugin %s', to_whom)
 
-    def get_queue_from_plugins(self) -> Queue:
+    def get_queue_from_plugins(self) -> multiprocessing.Queue:
         """Get the one queue recieving input from all plugins.
 
         Creates the queue if necessary.
@@ -76,7 +96,8 @@ class BoxHead:
         """
 
         if not hasattr(self, '_queue_from_plugins'):
-            self._queue_from_plugins: Queue = Queue()
+            self._queue_from_plugins: multiprocessing.Queue = multiprocessing.Queue(
+            )
 
         return self._queue_from_plugins
 
@@ -148,7 +169,8 @@ class BoxHead:
         if who in subscribers:
             subscribers.remove(who)
         else:
-            logger.error('no such subscriber ({}) for event {}'.format(who, event))
+            self._logger.error('no such subscriber (%s) for event %s', who,
+                               event)
 
     def unregister_from_all(self, who: str) -> None:
         """Unregisters a plugin from all events it has subscribed to.
@@ -173,27 +195,28 @@ class BoxHead:
         subscribers: list[str] = self.get_subscribers(event)
 
         if len(subscribers) == 0:
-            logger.debug('trying to dispatch {} but no one is listening'.format(
-                event))
+            self._logger.debug('trying to dispatch %s but no one is listening',
+                               event)
             return
 
         for subscriber in subscribers:
             try:
-                logger.debug('emitting {} for {}'.format(event, subscriber))
-                queue = self.get_queue_to_plugin(subscriber, False)
-                queue.put(event)
+                self._logger.debug('emitting %s for %s', event, subscriber)
+                self.get_queue_to_plugin(subscriber, False).put(event)
             except KeyError:
                 # a name has been registered which does not belong to a plugin
-                logger.error('no queue to subscriber {}'.format(subscriber))
+                self._logger.error('no queue to subscriber %s', subscriber)
                 self.unregister_from_all(subscriber)
                 self.delete_queue_to_plugin(subscriber)
             except ValueError:
-                # the queue has been closed/ damaged so do not use it anymore
+                # the queue has been closed / damaged so do not use it anymore
                 self.unregister_from_all(subscriber)
                 self.delete_queue_to_plugin(subscriber)
-                logger.error('queue to {} has been destroyed'.format(subscriber))
+                self._logger.error('queue to %s has been destroyed',
+                                   subscriber)
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
+        #pylint: disable=unused-argument
         """Stop the running process on interrupt.
 
         Args:
@@ -204,40 +227,80 @@ class BoxHead:
         self.emit('terminate')
         self._terminate_signal = True
 
+    def start_logging(self):
+        """Create thread and a queue to lofg from multiple processes."""
+
+        self._logger_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
+
+        self._logger_thread: threading.Thread = threading.Thread(
+            target=self.run_logger, args=(self._logger_queue, ))
+        self._logger_thread.start()
+
+        queue_handler: handlers.QueueHandler = handlers.QueueHandler(
+            self._logger_queue)
+        root_logger: logging.Logger = logging.getLogger()
+        root_logger.addHandler(queue_handler)
+        config.dictConfig(log.config)
+
+        self._logger: logging.Logger = logging.getLogger('BoxHead')
+
+    def stop_logging(self):
+        """Stop the logging thread."""
+
+        self._logger_queue.put(None)
+
+    def run_logger(self, record_queue: multiprocessing.Queue) -> None:
+        """Logs all records sent through the queue.
+
+        Runs in its own thread so it doesn't block the main thread.
+
+        Args:
+            queue: The queue that is used by the QueueFileHandler.
+        """
+
+        while True:
+            record = record_queue.get(True)
+            if record is None:
+                break
+            logger: logging.Logger = logging.getLogger(record.name)
+            logger.handle(record)
+
     def run(self) -> None:
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
 
         self._terminate_signal = False
 
-        processes = []
-        for i in range(0,3):
-            processes.append(plugin.Plugin(
-                str(i),
-                self,
-                self.get_queue_to_plugin(str(i)),
-                self.get_queue_from_plugins()))
+        self.start_logging()
+
+        processes: list[plugin.Plugin] = []
+        for i in range(0, 3):
+            processes.append(
+                plugin.Plugin(str(i), self, self.get_queue_to_plugin(str(i)),
+                              self.get_queue_from_plugins()))
             self.register('terminate', str(i))
-            logger.debug('starting process {}'.format(i))
+            self._logger.debug('starting process %s', i)
             processes[i].start()
 
         while not self._terminate_signal:
             try:
                 event: object = self._queue_from_plugins.get(True, 0.1)
-                logger.debug('recieved {}'.format(event))
-            except Empty:
+                self._logger.debug('recieved %s', event)
+            except queue.Empty:
                 pass
             except ValueError:
-                logger.error('queue from plugins closed')
+                self._logger.error('queue from plugins closed')
 
-        for i in range(0,3):
+        for i in range(0, 3):
             processes[i].join()
+
+        self.stop_logging()
+        self._logger_thread.join()
 
 
 def main() -> None:
     """Reads cli arguments, configures logging and runs the main loop.
     """
-    logging.config.dictConfig(log.config)
     boxhead: BoxHead = BoxHead()
     boxhead.run()
 
