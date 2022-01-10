@@ -227,8 +227,8 @@ class BoxHead:
         self.emit('terminate')
         self._terminate_signal = True
 
-    def start_logging(self):
-        """Create thread and a queue to lofg from multiple processes."""
+    def start_logging(self) -> None:
+        """Create thread and a queue to log from multiple processes."""
 
         self._logger_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
 
@@ -236,6 +236,8 @@ class BoxHead:
             target=self.run_logger, args=(self._logger_queue, ))
         self._logger_thread.start()
 
+        # Some details on subtleties:
+        # https://fanchenbao.medium.com/python3-logging-with-multiprocessing-f51f460b8778
         queue_handler: handlers.QueueHandler = handlers.QueueHandler(
             self._logger_queue)
         root_logger: logging.Logger = logging.getLogger()
@@ -244,7 +246,7 @@ class BoxHead:
 
         self._logger: logging.Logger = logging.getLogger('BoxHead')
 
-    def stop_logging(self):
+    def stop_logging(self) -> None:
         """Stop the logging thread."""
 
         self._logger_queue.put(None)
