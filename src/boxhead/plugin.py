@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Base plugin."""
 
-import logging
 import multiprocessing
 import queue
 import signal
 
 from boxhead import boxhead
+from boxhead.boxheadlogging import boxheadlogging
 
-logger = logging.getLogger(__name__)
-
+logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 
 class Plugin(multiprocessing.Process):
     """Base class for plugins using their own process.
@@ -21,8 +20,6 @@ class Plugin(multiprocessing.Process):
         _terminate_signal: Terminates the process if `True`.
         _to_plugin: Queue to recieve signals from the main process.
         _from_plugin: Queue to send signals to the main process.
-        _logger: Logger for records, configured to queue records to
-            the main process.
     """
 
     def __init__(self, name: str, main: boxhead.BoxHead,
@@ -52,10 +49,8 @@ class Plugin(multiprocessing.Process):
         self._to_plugin: multiprocessing.Queue = to_plugin
         self._from_plugin: multiprocessing.Queue = from_plugin
 
-        self._logger = logging.getLogger(name)
-
         self.on_init(main)
-        self._logger.debug('initialised %s', self.get_name())
+        logger.debug('initialised %s', self.get_name())
 
     def get_name(self) -> str:
         """Returns the name set by `__init__()`.
@@ -75,7 +70,7 @@ class Plugin(multiprocessing.Process):
             main: The instance of the central module.
         """
 
-        self._logger.debug('initialising %s', self.get_name())
+        logger.debug('initialising %s', self.get_name())
 
     def on_terminate(self) -> None:
         """Ends execution of the process after a `terminate` event."""
@@ -89,7 +84,7 @@ class Plugin(multiprocessing.Process):
         `_tick_interval`.
         """
 
-        self._logger.debug('%s working', self.get_name())
+        logger.debug('%s working', self.get_name())
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
         #pylint: disable=unused-argument
@@ -103,7 +98,7 @@ class Plugin(multiprocessing.Process):
         self._terminate_signal = True
 
     def run(self) -> None:
-        self._logger.debug('%s running', self.get_name())
+        logger.debug('%s running', self.get_name())
 
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
@@ -115,14 +110,14 @@ class Plugin(multiprocessing.Process):
                 if hasattr(self, 'on_' + event):
                     getattr(self, 'on_' + event)()
                 else:
-                    self._logger.error('no method for event %s defined by %s',
+                    logger.error('no method for event %s defined by %s',
                                        event, self.get_name())
             except queue.Empty:
                 pass
             except ValueError:
-                self._logger.error('%s holds a closed queue', self.get_name())
+                logger.error('%s holds a closed queue', self.get_name())
 
     def __del__(self) -> None:
         """Tidies up afterwards."""
 
-        self._logger.debug('%s is stopping', self.get_name())
+        logger.debug('%s is stopping', self.get_name())

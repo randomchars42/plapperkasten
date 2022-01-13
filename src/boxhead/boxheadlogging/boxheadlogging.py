@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Logging for all processes in the project."""
+
+import logging as log
+from logging import config as logging_config
+from logging import handlers
+import multiprocessing
+
+logging_config.dictConfig({
+    'version': 1,
+    'formatters': {
+        'detailed': {
+            'format': '%(asctime)s %(name)-15s %(levelname)-8s %(message)s',
+        },
+        'simple': {
+            'format': '%(levelname)s %(name)s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            #'level': 'INFO',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'boxhead.log',
+            'mode': 'a',
+            'maxBytes': 10000000,
+            'backupCount': 5,
+            'formatter': 'detailed',
+        },
+        'errors': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'boxhead-errors.log',
+            'mode': 'a',
+            'maxBytes': 10000000,
+            'backupCount': 5,
+            'level': 'ERROR',
+            'formatter': 'detailed',
+        },
+    },
+    'root': {
+        'level': 'DEBUG'
+    },
+    'loggers': {
+        'logging_thread': {
+            'handlers': ['console', 'file', 'errors'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+    },
+})
+
+logger_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
+root: log.Logger = log.getLogger()
+root.addHandler(handlers.QueueHandler(logger_queue))
+
+class BoxHeadLogger(log.Logger):
+    """Simple wrapper around logging.Logger."""
+    pass
+
+def get_logger(name: str) -> BoxHeadLogger:
+    """Wrapper aroung logging.getLogger().
+
+    Args:
+        name: The name of the logger to return.
+    """
+    return log.getLogger(name)
+
+def get_queue() -> multiprocessing.Queue:
+    """Return the queue used in the multiprocessing setup.
+
+    Returns:
+        The queue used by logging.handlers.QueueHandler().
+    """
+    return logger_queue

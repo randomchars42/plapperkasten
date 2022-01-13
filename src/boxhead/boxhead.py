@@ -1,10 +1,8 @@
 #!/usr/bin/env python3.9
 """BoxHead."""
-#import argparse
+
+import argparse
 #import importlib
-import logging
-from logging import config
-from logging import handlers
 import multiprocessing
 #import os
 #import pkgutil
@@ -14,9 +12,11 @@ import signal
 #import sys
 import threading
 
+from boxhead import config as boxhead_config
 from boxhead import plugin
-from boxhead.log import log
+from boxhead.boxheadlogging import boxheadlogging
 
+logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 
 class BoxHead:
     """Main unit for controlling the box.
@@ -37,7 +37,6 @@ class BoxHead:
     Attributes:
         _queues_to_plugin: Queues to signal to each plugin.
         _queue_from_plugin: Queue to get input from all plugins.
-        _logger: The logger to use.
         _logger_thread: Thread that does the work of logging for all
             processes.
         _logger_queue: Queue to the logger thread.
@@ -77,14 +76,14 @@ class BoxHead:
         """
 
         if not hasattr(self, '_queues_to_plugins'):
-            self._logger.error('no queues to plugins initialised yet')
+            logger.error('no queues to plugins initialised yet')
             return
 
         if to_whom in self._queues_to_plugins:
             del self._queues_to_plugins[to_whom]
 
         else:
-            self._logger.error('no queue to plugin %s', to_whom)
+            logger.error('no queue to plugin %s', to_whom)
 
     def get_queue_from_plugins(self) -> multiprocessing.Queue:
         """Get the one queue recieving input from all plugins.
@@ -169,7 +168,7 @@ class BoxHead:
         if who in subscribers:
             subscribers.remove(who)
         else:
-            self._logger.error('no such subscriber (%s) for event %s', who,
+            logger.error('no such subscriber (%s) for event %s', who,
                                event)
 
     def unregister_from_all(self, who: str) -> None:
@@ -195,24 +194,24 @@ class BoxHead:
         subscribers: list[str] = self.get_subscribers(event)
 
         if len(subscribers) == 0:
-            self._logger.debug('trying to dispatch %s but no one is listening',
+            logger.debug('trying to dispatch %s but no one is listening',
                                event)
             return
 
         for subscriber in subscribers:
             try:
-                self._logger.debug('emitting %s for %s', event, subscriber)
+                logger.debug('emitting %s for %s', event, subscriber)
                 self.get_queue_to_plugin(subscriber, False).put(event)
             except KeyError:
                 # a name has been registered which does not belong to a plugin
-                self._logger.error('no queue to subscriber %s', subscriber)
+                logger.error('no queue to subscriber %s', subscriber)
                 self.unregister_from_all(subscriber)
                 self.delete_queue_to_plugin(subscriber)
             except ValueError:
                 # the queue has been closed / damaged so do not use it anymore
                 self.unregister_from_all(subscriber)
                 self.delete_queue_to_plugin(subscriber)
-                self._logger.error('queue to %s has been destroyed',
+                logger.error('queue to %s has been destroyed',
                                    subscriber)
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
@@ -228,9 +227,10 @@ class BoxHead:
         self._terminate_signal = True
 
     def start_logging(self) -> None:
-        """Create thread and a queue to log from multiple processes."""
+        """Create thread and a queue to log from multiple processes.
+        """
 
-        self._logger_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
+        self._logger_queue: multiprocessing.Queue = boxheadlogging.get_queue()
 
         self._logger_thread: threading.Thread = threading.Thread(
             target=self.run_logger, args=(self._logger_queue, ))
@@ -238,13 +238,6 @@ class BoxHead:
 
         # Some details on subtleties:
         # https://fanchenbao.medium.com/python3-logging-with-multiprocessing-f51f460b8778
-        queue_handler: handlers.QueueHandler = handlers.QueueHandler(
-            self._logger_queue)
-        root_logger: logging.Logger = logging.getLogger()
-        root_logger.addHandler(queue_handler)
-        config.dictConfig(log.config)
-
-        self._logger: logging.Logger = logging.getLogger('BoxHead')
 
     def stop_logging(self) -> None:
         """Stop the logging thread."""
@@ -260,14 +253,21 @@ class BoxHead:
             queue: The queue that is used by the QueueFileHandler.
         """
 
+        thread_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(
+                'logging_thread')
         while True:
+            # TODO: add  type
             record = record_queue.get(True)
             if record is None:
                 break
-            logger: logging.Logger = logging.getLogger(record.name)
-            logger.handle(record)
+            thread_logger.handle(record)
 
-    def run(self) -> None:
+    def run(self, config: boxhead_config.Config) -> None:
+        """Run the application.
+
+        Args:
+            verbosity: A value between 0 (ERROR) and 3 (DEBUG).
+        """
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
 
@@ -281,17 +281,17 @@ class BoxHead:
                 plugin.Plugin(str(i), self, self.get_queue_to_plugin(str(i)),
                               self.get_queue_from_plugins()))
             self.register('terminate', str(i))
-            self._logger.debug('starting process %s', i)
+            logger.debug('starting process %s', i)
             processes[i].start()
 
         while not self._terminate_signal:
             try:
                 event: object = self._queue_from_plugins.get(True, 0.1)
-                self._logger.debug('recieved %s', event)
+                logger.debug('recieved %s', event)
             except queue.Empty:
                 pass
             except ValueError:
-                self._logger.error('queue from plugins closed')
+                logger.error('queue from plugins closed')
 
         for i in range(0, 3):
             processes[i].join()
@@ -301,11 +301,55 @@ class BoxHead:
 
 
 def main() -> None:
-    """Reads cli arguments, configures logging and runs the main loop.
-    """
-    boxhead: BoxHead = BoxHead()
-    boxhead.run()
+    """Reads cli arguments and runs the main loop."""
 
+    verbosity: int = 3
+    levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
+    #log.config['handlers']['console']['level'] = levels[verbosity] # type: ignore
+    #log.config['handlers']['file']['level'] = levels[verbosity] # type: ignore
+
+    config = boxhead_config.Config()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-o', '--options',
+        help='arbitrary configuration options as could be found in the ' +
+            'ini-file \n' +
+            'formatted like SECTION1.option1=val1@@' +
+            'SECTION2.option4=val2@@... \n' +
+            'e.g., Soundcontrol.max_volume=60@@' +
+            'InputUSBRFID.device=/dev/event0 \n' +
+            '"@@" serves as a separator',
+        action='store',
+        default='',
+        type=str)
+    parser.add_argument(
+        '-d', '--user_dir',
+        help='the directory where your config.ini, eventmap, etc. is stored',
+        action='store',
+        type=str,
+        default='')
+    parser.add_argument(
+        '-v', '--verbosity',
+        help='increase verbosity',
+        action='count',
+        default=0)
+
+    args = parser.parse_args()
+
+    if not args.options == '':
+        for option in args.options.split('@@'):
+            try:
+                section, rest = option.split('.', 1)
+                option, value = rest.split('=', 1)
+                config.set(section, option, value)
+            except ValueError:
+                print(f'did not understand option "{option}"')
+
+    if not args.user_dir == '':
+        config.set('Paths', 'user_dir', args.user_dir)
+
+    boxhead: BoxHead = BoxHead()
+    boxhead.run(config)
 
 if __name__ == '__main__':
     main()
