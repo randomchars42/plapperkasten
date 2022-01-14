@@ -3,6 +3,7 @@
 
 import argparse
 #import importlib
+import logging
 import multiprocessing
 #import os
 #import pkgutil
@@ -41,6 +42,7 @@ class BoxHead:
             processes.
         _logger_queue: Queue to the logger thread.
         _events: Events and their subscribers.
+        _processes: A process for each plugin.
     """
 
     def get_queue_to_plugin(self,
@@ -236,9 +238,6 @@ class BoxHead:
             target=self.run_logger, args=(self._logger_queue, ))
         self._logger_thread.start()
 
-        # Some details on subtleties:
-        # https://fanchenbao.medium.com/python3-logging-with-multiprocessing-f51f460b8778
-
     def stop_logging(self) -> None:
         """Stop the logging thread."""
 
@@ -256,9 +255,9 @@ class BoxHead:
         thread_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(
                 'logging_thread')
         while True:
-            # TODO: add  type
-            record = record_queue.get(True)
+            record: logging.LogRecord = record_queue.get(True)
             if record is None:
+                logger.debug('stopping logging thread')
                 break
             thread_logger.handle(record)
 
@@ -275,14 +274,14 @@ class BoxHead:
 
         self.start_logging()
 
-        processes: list[plugin.Plugin] = []
+        self._processes: list[plugin.Plugin] = []
         for i in range(0, 3):
-            processes.append(
+            self._processes.append(
                 plugin.Plugin(str(i), self, self.get_queue_to_plugin(str(i)),
                               self.get_queue_from_plugins()))
             self.register('terminate', str(i))
             logger.debug('starting process %s', i)
-            processes[i].start()
+            self._processes[i].start()
 
         while not self._terminate_signal:
             try:
@@ -293,12 +292,10 @@ class BoxHead:
             except ValueError:
                 logger.error('queue from plugins closed')
 
-        for i in range(0, 3):
-            processes[i].join()
+        logger.debug('exited main loop')
 
         self.stop_logging()
         self._logger_thread.join()
-
 
 def main() -> None:
     """Reads cli arguments and runs the main loop."""

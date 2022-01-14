@@ -116,6 +116,7 @@ class Plugin(multiprocessing.Process):
                 pass
             except ValueError:
                 logger.error('%s holds a closed queue', self.get_name())
+        logger.debug('%s exited main loop', self.get_name())
 
     def __del__(self) -> None:
         """Tidies up afterwards."""
