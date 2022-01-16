@@ -1,3 +1,47 @@
-# pyproject.toml
+[project]
+name = 'boxhead'
+version = '0.1.0'
+description = ''
+readme = 'README.md'
+requires-python = '>=3.9'
+license = 'The Unlicense'
+authors = [
+{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
+]
+maintainers = [
+{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'}
+]
+classifiers = [
+    'License :: OSI Approved :: The Unlicense (Unlicense)',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3 :: Only',
+    'Development Status :: 5 - Production/Stable',
+    'Programming Language :: Python'
+]
+dependencies = [
+    'pyyaml>=5'
+]
+
+[project.urls]
+homepage = 'https://github.com/randomchars42/boxcontroller'
+documentation = 'https://github.com/randomchars42/boxcontroller'
+source = 'https://github.com/randomchars42/boxcontroller'
+tracker = 'https://github.com/randomchars42/boxcontroller/issues'
+
+[project.scripts]
+boxhead = 'boxhead.boxhead:main'
+
 [build-system]
-requires = ["setuptools>=30.3.0", "wheel", "setuptools_scm"]
+requires = [
+    'docutils>=0.3',
+    'wheel',
+    'setuptools',
+    'types-setuptools',
+    'types-pyyaml',
+    'mypy',
+    'pylint',
+    'yapf'
+]
+build-backend = 'setuptools.build_meta'
