@@ -19,7 +19,6 @@ logging_config.dictConfig({
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            #'level': 'INFO',
             'formatter': 'simple',
         },
         'file': {
@@ -57,8 +56,20 @@ root: log.Logger = log.getLogger()
 root.addHandler(handlers.QueueHandler(logger_queue))
 
 class BoxHeadLogger(log.Logger):
-    """Simple wrapper around logging.Logger."""
-    pass
+    """Wrapper around logging.Logger.
+
+    Needed so that other modules do not need to import `logging` for
+    type hinting the logger object.
+    """
+
+    def __init__(self, logger: log.Logger):
+        # pylint: disable=super-init-not-called
+        """"""
+
+        self.__class__ = type(logger.__class__.__name__,
+                              (self.__class__, logger.__class__),
+                              {})
+        self.__dict__ = logger.__dict__
 
 def get_logger(name: str) -> BoxHeadLogger:
     """Wrapper aroung logging.getLogger().
@@ -66,7 +77,8 @@ def get_logger(name: str) -> BoxHeadLogger:
     Args:
         name: The name of the logger to return.
     """
-    return log.getLogger(name)
+
+    return BoxHeadLogger(log.getLogger(name))
 
 def get_queue() -> multiprocessing.Queue:
     """Return the queue used in the multiprocessing setup.
@@ -74,4 +86,5 @@ def get_queue() -> multiprocessing.Queue:
     Returns:
         The queue used by logging.handlers.QueueHandler().
     """
+
     return logger_queue
