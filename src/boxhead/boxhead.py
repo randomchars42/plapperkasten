@@ -300,11 +300,6 @@ class BoxHead:
 def main() -> None:
     """Reads cli arguments and runs the main loop."""
 
-    verbosity: int = 3
-    levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
-    #log.config['handlers']['console']['level'] = levels[verbosity] # type: ignore
-    #log.config['handlers']['file']['level'] = levels[verbosity] # type: ignore
-
     config = boxhead_config.Config()
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -344,6 +339,10 @@ def main() -> None:
 
     if not args.user_dir == '':
         config.set('Paths', 'user_dir', args.user_dir)
+
+    levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
+    root_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger()
+    root_logger.setLevel(levels[args.verbosity])
 
     boxhead: BoxHead = BoxHead()
     boxhead.run(config)
