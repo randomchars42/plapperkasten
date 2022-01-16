@@ -71,13 +71,15 @@ class BoxHeadLogger(log.Logger):
                               {})
         self.__dict__ = logger.__dict__
 
-def get_logger(name: str) -> BoxHeadLogger:
+def get_logger(name: str = '') -> BoxHeadLogger:
     """Wrapper aroung logging.getLogger().
 
     Args:
-        name: The name of the logger to return.
+        name: The name of the logger to return, empty for root.
     """
 
+    if name == '':
+        return BoxHeadLogger(log.getLogger())
     return BoxHeadLogger(log.getLogger(name))
 
 def get_queue() -> multiprocessing.Queue:
