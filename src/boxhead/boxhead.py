@@ -97,8 +97,8 @@ class BoxHead:
         """
 
         if not hasattr(self, '_queue_from_plugins'):
-            self._queue_from_plugins: multiprocessing.Queue = multiprocessing.Queue(
-            )
+            self._queue_from_plugins: multiprocessing.Queue =  \
+                    multiprocessing.Queue()
 
         return self._queue_from_plugins
 
@@ -306,10 +306,10 @@ def main() -> None:
         '-o', '--options',
         help='arbitrary configuration options as could be found in the ' +
             'ini-file \n' +
-            'formatted like SECTION1.option1=val1@@' +
-            'SECTION2.option4=val2@@... \n' +
-            'e.g., Soundcontrol.max_volume=60@@' +
-            'InputUSBRFID.device=/dev/event0 \n' +
+            'formatted like path.to.option1=val1@@' +
+            'path2.to.option2=val2@@... \n' +
+            'e.g., plugins.soundcontrol.max_volume=60@@' +
+            'plugins.inputrfidusb.device=/dev/event0 \n' +
             '"@@" serves as a separator',
         action='store',
         default='',
@@ -328,21 +328,23 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if not args.options == '':
-        for option in args.options.split('@@'):
-            try:
-                section, rest = option.split('.', 1)
-                option, value = rest.split('=', 1)
-                config.set(section, option, value)
-            except ValueError:
-                print(f'did not understand option "{option}"')
-
-    if not args.user_dir == '':
-        config.set('Paths', 'user_dir', args.user_dir)
-
     levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
     root_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger()
     root_logger.setLevel(levels[args.verbosity])
+
+    if not args.options == '':
+        for option in args.options.split('@@'):
+            try:
+                rest: str = ''
+                value: str = ''
+                rest, value = option.split('=', 1)
+                path: list[str] = rest.split('.')
+                config.set(*path, value=value)
+            except ValueError:
+                logger.error('did not understand option "%s"', option)
+
+    if not args.user_dir == '':
+        config.set('core', 'paths', 'user_directory', value=args.user_dir)
 
     boxhead: BoxHead = BoxHead()
     boxhead.run(config)
