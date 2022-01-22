@@ -305,7 +305,7 @@ def main() -> None:
     parser.add_argument(
         '-o', '--options',
         help='arbitrary configuration options as could be found in the ' +
-            'ini-file \n' +
+            'yaml-file \n' +
             'formatted like path.to.option1=val1@@' +
             'path2.to.option2=val2@@... \n' +
             'e.g., plugins.soundcontrol.max_volume=60@@' +
@@ -339,12 +339,12 @@ def main() -> None:
                 value: str = ''
                 rest, value = option.split('=', 1)
                 path: list[str] = rest.split('.')
-                config.set(*path, value=value)
+                config.set_str(*path, value=value)
             except ValueError:
                 logger.error('did not understand option "%s"', option)
 
     if not args.user_dir == '':
-        config.set('core', 'paths', 'user_directory', value=args.user_dir)
+        config.set_str('core', 'paths', 'user_directory', value=args.user_dir)
 
     boxhead: BoxHead = BoxHead()
     boxhead.run(config)
