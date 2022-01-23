@@ -44,7 +44,8 @@ logging_config.dictConfig({
     },
     'loggers': {
         'logging_thread': {
-            'handlers': ['console', 'file', 'errors'],
+            'handlers': ['console'],
+            #'handlers': ['console', 'file', 'errors'],
             'level': 'DEBUG',
             'propagate': False
         },
