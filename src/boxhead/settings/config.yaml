@@ -8,7 +8,7 @@ core:
     plugins: 'plugins'
     # where to expect the user-defined eventmap
     # relative to the user config directory
-    eventmap: 'eventmap'
+    eventmap: 'events.map'
 
   mapping:
     # the delimiter to use in a map file
