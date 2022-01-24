@@ -57,7 +57,7 @@ class BoxHead:
             create: Create a queue if necessary.
 
         Returns:
-            A Queue-object to the plugin
+            A Queue-object to the plugin.
 
         Raises:
             KeyError: No queue has been created for that plugin and

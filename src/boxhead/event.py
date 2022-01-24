@@ -22,7 +22,7 @@ class Event():
                  **params: str) -> None:
         """Initialises variables from parameters or KeyMapItem.
 
-        Arguments:
+        Args:
             name: The name of the event.
             *values: A list of values.
             **parameters: A dictionary of parameters.

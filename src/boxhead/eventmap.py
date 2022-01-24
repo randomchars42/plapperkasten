@@ -31,7 +31,7 @@ class EventMap(keymap.KeyMap):
     def __init__(self, config: boxhead_config.Config) -> None:
         """Initialise variables and load map from file(s).
 
-        Arguments:
+        Args:
             config: The configuration.
         """
         super().__init__(config)
@@ -66,7 +66,7 @@ class EventMap(keymap.KeyMap):
     def get_event(self, key: str) -> event.Event:
         """Return the event mapped to the key or None.
 
-        Arguments:
+        Args:
             key: The key.
 
         Returns:
@@ -85,7 +85,7 @@ class EventMap(keymap.KeyMap):
                      **params: str) -> None:
         """Update, add or delete the mapping of an event.
 
-        Arguments:
+        Args:
             key: The key.
             event: The name of the event. Leave empty to remove entry.
             *values: Values to store.
@@ -100,7 +100,7 @@ class EventMap(keymap.KeyMap):
     def remove_event(self, key) -> None:
         """Remove event with key.
 
-        Arguments:
+        Args:
             key: The key.
         """
         self.remove(self.get_path_user_map(), key)

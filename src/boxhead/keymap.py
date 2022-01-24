@@ -69,7 +69,7 @@ class KeyMap():
     def _load(self, path: pathlib.Path) -> None:
         """Load map from file.
 
-        Arguments:
+        Args:
             path: Path to load the map from.
         """
 
@@ -107,7 +107,7 @@ class KeyMap():
         Mapping lines are formatted like this:
         KEY|DATUM1|KEYWORD2=DATUM2|KEYWORD3=DATUM3|...
 
-        Arguments:
+        Args:
             raw_line: The raw line to parse.
 
         Returns:
@@ -135,7 +135,7 @@ class KeyMap():
     def get(self, key: str) -> KeyMapItem:
         """Return the entry mapped to the key or an empty item.
 
-        Arguments:
+        Args:
             key: The key.
 
         Returns:
@@ -150,7 +150,7 @@ class KeyMap():
     def _to_map_line(self, key: str, *values: str, **params: str) -> str:
         """Convert values and params to a map line.
 
-        Arguments:
+        Args:
             key: The key:
             values: Values.
             params: A dict containing parameters
@@ -164,7 +164,7 @@ class KeyMap():
                **params: str) -> None:
         """Update, add or delete an entry.
 
-        Arguments:
+        Args:
             path: The path of the file.
             mapkey: The key.
             *values: Values to store. Leave empty to remove entry.
@@ -222,8 +222,8 @@ class KeyMap():
     def remove(self, path: pathlib.Path, key: str) -> None:
         """Remove entry with key.
 
-        Positional arguments:
-        path -- the path of the file [string]
-        key -- the key of the data to remove
+        Args:
+            path: The path of the file.
+            key: The key of the data to remove.
         """
         self.update(path, key)

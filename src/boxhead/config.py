@@ -55,7 +55,7 @@ class Config():
     def _load(self, path: pathlib.Path) -> None:
         """Load config from file.
 
-        Arguments:
+        Args:
             path: Path to load config from.
         """
 
@@ -74,7 +74,7 @@ class Config():
 
         Creates the path if it doesn't exist.
 
-        Arguments:
+        Args:
             *path: The path to the value to get.
             default: The default to return.
 
@@ -108,7 +108,7 @@ class Config():
         """Return the specified configuration or default.
 
 
-        Arguments:
+        Args:
             *path: The path to the value to get.
 
         Returns:
@@ -222,7 +222,7 @@ class Config():
     def set(self, *path, value: Any, convert: Callable[[Any], Any]) -> None:
         """Set a config value manually.
 
-        Positional arguments:
+        Args:
             *path: The path to the value to set.
             value: The value.
 
@@ -311,7 +311,16 @@ class Config():
 
     def _convert_list(self, convert_from: list[T],
                       convert: Callable[[T], U]) -> list[U]:
-        """Convert all items in the list."""
+        """Convert all items in the list.
+
+        Args:
+            convert_from: The list to convert.
+            convert: A function to convert the list items.
+
+        Returns:
+            The converted list.
+        """
+
         try:
             return [convert(value) for value in convert_from]
         except TypeError as e:
@@ -321,7 +330,17 @@ class Config():
     def _convert_dict(self, convert_from: dict[T, U],
                       convert_keys: Callable[[T], V],
                       convert_values: Callable[[U], W]) -> dict[V, W]:
-        """Convert all keys and values in the dict."""
+        """Converts all keys and values in the dict.
+
+        Args:
+            convert_from: The dict to convert.
+            convert_keys: A function to convert the keys.
+            convert_values: A function to convert the values.
+
+        Returns:
+            The converted dict.
+        """
+
         try:
             return {
                 convert_keys(key): convert_values(value)
