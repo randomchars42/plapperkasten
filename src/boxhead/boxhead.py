@@ -187,11 +187,13 @@ class BoxHead:
             if who in subscribers:
                 subscribers.remove(who)
 
-    def emit(self, event: str) -> None:
+    def emit(self, event: str, *values: str, **params: str) -> None:
         """Emit an event to all its subscribers.
 
         Args:
             event: The name of the event.
+            *values: A list of values.
+            **parameters: A dictionary of parameters.
         """
 
         subscribers: list[str] = self.get_subscribers(event)
@@ -204,7 +206,8 @@ class BoxHead:
         for subscriber in subscribers:
             try:
                 logger.debug('emitting %s for %s', event, subscriber)
-                self.get_queue_to_plugin(subscriber, False).put_nowait(event)
+                self.get_queue_to_plugin(subscriber, False).put_nowait(
+                        boxhead_event.Event(event, *values, **params))
             except queue.Full:
                 logger.critical('queue to plugin %s full', subscriber)
             except KeyError:
