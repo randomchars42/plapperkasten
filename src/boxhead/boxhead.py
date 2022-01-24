@@ -14,10 +14,12 @@ import signal
 import threading
 
 from boxhead import config as boxhead_config
+from boxhead import event as boxhead_event
 from boxhead import plugin
 from boxhead.boxheadlogging import boxheadlogging
 
 logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+
 
 class BoxHead:
     """Main unit for controlling the box.
@@ -170,8 +172,7 @@ class BoxHead:
         if who in subscribers:
             subscribers.remove(who)
         else:
-            logger.error('no such subscriber (%s) for event %s', who,
-                               event)
+            logger.error('no such subscriber (%s) for event %s', who, event)
 
     def unregister_from_all(self, who: str) -> None:
         """Unregisters a plugin from all events it has subscribed to.
@@ -197,13 +198,15 @@ class BoxHead:
 
         if len(subscribers) == 0:
             logger.debug('trying to dispatch %s but no one is listening',
-                               event)
+                         event)
             return
 
         for subscriber in subscribers:
             try:
                 logger.debug('emitting %s for %s', event, subscriber)
-                self.get_queue_to_plugin(subscriber, False).put(event)
+                self.get_queue_to_plugin(subscriber, False).put_nowait(event)
+            except queue.Full:
+                logger.critical('queue to plugin %s full', subscriber)
             except KeyError:
                 # a name has been registered which does not belong to a plugin
                 logger.error('no queue to subscriber %s', subscriber)
@@ -213,8 +216,7 @@ class BoxHead:
                 # the queue has been closed / damaged so do not use it anymore
                 self.unregister_from_all(subscriber)
                 self.delete_queue_to_plugin(subscriber)
-                logger.error('queue to %s has been destroyed',
-                                   subscriber)
+                logger.error('queue to %s has been destroyed', subscriber)
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
         #pylint: disable=unused-argument
@@ -253,7 +255,7 @@ class BoxHead:
         """
 
         thread_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(
-                'logging_thread')
+            'logging_thread')
         while True:
             record: logging.LogRecord = record_queue.get(True)
             if record is None:
@@ -277,7 +279,7 @@ class BoxHead:
         self._processes: list[plugin.Plugin] = []
         for i in range(0, 3):
             self._processes.append(
-                plugin.Plugin(str(i), self, self.get_queue_to_plugin(str(i)),
+                plugin.Plugin(str(i), config, self.get_queue_to_plugin(str(i)),
                               self.get_queue_from_plugins()))
             self.register('terminate', str(i))
             logger.debug('starting process %s', i)
@@ -285,7 +287,8 @@ class BoxHead:
 
         while not self._terminate_signal:
             try:
-                event: object = self._queue_from_plugins.get(True, 0.1)
+                event: boxhead_event.Event = self._queue_from_plugins.get(
+                    True, 0.1)
                 logger.debug('recieved %s', event)
             except queue.Empty:
                 pass
@@ -297,34 +300,36 @@ class BoxHead:
         self.stop_logging()
         self._logger_thread.join()
 
+
 def main() -> None:
     """Reads cli arguments and runs the main loop."""
 
     config = boxhead_config.Config()
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-o', '--options',
+        '-o',
+        '--options',
         help='arbitrary configuration options as could be found in the ' +
-            'yaml-file \n' +
-            'formatted like path.to.option1=val1@@' +
-            'path2.to.option2=val2@@... \n' +
-            'e.g., plugins.soundcontrol.max_volume=60@@' +
-            'plugins.inputrfidusb.device=/dev/event0 \n' +
-            '"@@" serves as a separator',
+        'yaml-file \n' + 'formatted like path.to.option1=val1@@' +
+        'path2.to.option2=val2@@... \n' +
+        'e.g., plugins.soundcontrol.max_volume=60@@' +
+        'plugins.inputrfidusb.device=/dev/event0 \n' +
+        '"@@" serves as a separator',
         action='store',
         default='',
         type=str)
     parser.add_argument(
-        '-d', '--user_dir',
+        '-d',
+        '--user_dir',
         help='the directory where your config.ini, eventmap, etc. is stored',
         action='store',
         type=str,
         default='')
-    parser.add_argument(
-        '-v', '--verbosity',
-        help='increase verbosity',
-        action='count',
-        default=0)
+    parser.add_argument('-v',
+                        '--verbosity',
+                        help='increase verbosity',
+                        action='count',
+                        default=0)
 
     args = parser.parse_args()
 
@@ -348,6 +353,7 @@ def main() -> None:
 
     boxhead: BoxHead = BoxHead()
     boxhead.run(config)
+
 
 if __name__ == '__main__':
     main()
