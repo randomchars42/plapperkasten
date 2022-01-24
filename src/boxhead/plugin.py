@@ -112,7 +112,7 @@ class Plugin(multiprocessing.Process):
         """
         try:
             self._to_plugin.put_nowait(
-                boxhead_event.Event(*values, name=name, **params))
+                boxhead_event.Event(name, *values, **params))
         except queue.Full:
             logger.critical('queue from plugins full')
 
