@@ -37,7 +37,7 @@ class Config():
         """
 
         self._config: dict[str, Any] = {}
-        #self.load()
+        self.load()
 
     def load(self) -> None:
         """Try to load config.yaml from several locations."""

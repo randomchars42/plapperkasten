@@ -2,20 +2,22 @@
 """BoxHead."""
 
 import argparse
-#import importlib
+import importlib
 import logging
 import multiprocessing
 #import os
-#import pkgutil
-#import pkg_resources
+import pathlib
+import pkg_resources
 import queue
 import signal
-#import sys
+import sys
 import threading
+
+from types import ModuleType
 
 from boxhead import config as boxhead_config
 from boxhead import event as boxhead_event
-from boxhead import plugin
+from boxhead import plugin as boxhead_plugin
 from boxhead.boxheadlogging import boxheadlogging
 
 logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
@@ -43,9 +45,91 @@ class BoxHead:
         _logger_thread: Thread that does the work of logging for all
             processes.
         _logger_queue: Queue to the logger thread.
-        _events: Events and their subscribers.
-        _processes: A process for each plugin.
+        _events: A dictionary of events and their subscribers.
+        _plugins: A list of plugin.
     """
+
+    def load_plugins(self, config: boxhead_config.Config) -> None:
+        """Triggers a (re-)scan of the plugin directories.
+
+        Tries to load all packages in the plugin directories as plugin.
+
+        There are two directories which may hold plugins:
+        * the core plugins reside under `./plugins`
+        * the user may provide plugins in the user directory (default:
+          `/~/.config/boxhead/plugins`)
+
+        Loads the class `Greatplugin` (first letter uppercase) from
+        file `/PATH/TO/PLUGINS/greatplugin/greatplugin.py`and stores
+        the object under `_plugins['Greatplugin']`.
+
+        Args:
+            config: The configuration to get the paths.
+        """
+
+        self._load_plugins(
+            pathlib.Path(
+                pkg_resources.resource_filename(
+                    __name__,
+                    config.get_str('core',
+                                   'paths',
+                                   'plugins',
+                                   default='plugins'))),
+            config.get_list_str('core', 'plugins', 'blacklist', default=[]),
+            config)
+
+        self._load_plugins(
+            pathlib.Path(
+                config.get_str('core',
+                               'paths',
+                               'user_directory',
+                               default='~/.config/boxhead'),
+                config.get_str('core', 'paths', 'plugins',
+                               default='plugins')).expanduser().resolve(),
+            config.get_list_str('core', 'plugins', 'blacklist', default=[]),
+            config)
+
+    def _load_plugins(self, path: pathlib.Path, blacklist: list[str],
+                      config: boxhead_config.Config) -> None:
+        """Gathers all packages located under path as plugins.
+
+        Each plugin is instantiated and registered for the `terminate`
+        event so its process may be stopped later on.
+
+        Args:
+            path: The path to scan for packages.
+            blacklist: A list of plugins to ignore. Use the package
+                name (all lowercase).
+        """
+
+        logger.debug('loading plugins from %s', path)
+
+        sys.path.append(str(path))
+
+        for file in path.glob('*'):
+            name: str = file.name
+
+            if name == '__pycache__' or not file.is_dir():
+                continue
+
+            if name.lower() in blacklist:
+                logger.debug('blacklisted plugin: %s', name)
+                continue
+
+            module: ModuleType = importlib.import_module(f'{name}.{name}')
+            classname: str = name[0].upper() + name[1:]
+
+            try:
+                self._plugins.append(
+                    getattr(module, classname)(name, config,
+                                               self.get_queue_to_plugin(name),
+                                               self.get_queue_from_plugins()))
+                self.register('terminate', name)
+            except AttributeError:
+                logger.error('failed to load module "%s" - "%s" missing? ',
+                             name, classname)
+
+        logger.info('plugins loaded from %s', path)
 
     def get_queue_to_plugin(self,
                             to_whom: str,
@@ -207,7 +291,7 @@ class BoxHead:
             try:
                 logger.debug('emitting %s for %s', event, subscriber)
                 self.get_queue_to_plugin(subscriber, False).put_nowait(
-                        boxhead_event.Event(event, *values, **params))
+                    boxhead_event.Event(event, *values, **params))
             except queue.Full:
                 logger.critical('queue to plugin %s full', subscriber)
             except KeyError:
@@ -270,7 +354,7 @@ class BoxHead:
         """Run the application.
 
         Args:
-            verbosity: A value between 0 (ERROR) and 3 (DEBUG).
+            config: The configuration.
         """
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
@@ -279,24 +363,24 @@ class BoxHead:
 
         self.start_logging()
 
-        self._processes: list[plugin.Plugin] = []
-        for i in range(0, 3):
-            self._processes.append(
-                plugin.Plugin(str(i), config, self.get_queue_to_plugin(str(i)),
-                              self.get_queue_from_plugins()))
-            self.register('terminate', str(i))
-            logger.debug('starting process %s', i)
-            self._processes[i].start()
+        self._plugins: list[boxhead_plugin.Plugin] = []
 
-        while not self._terminate_signal:
-            try:
-                event: boxhead_event.Event = self._queue_from_plugins.get(
-                    True, 0.1)
-                logger.debug('recieved %s', event)
-            except queue.Empty:
-                pass
-            except ValueError:
-                logger.error('queue from plugins closed')
+        self.load_plugins(config)
+
+        for plugin in self._plugins:
+            logger.debug('starting process %s', plugin)
+            plugin.start()
+
+        if len(self._plugins) > 0:
+            while not self._terminate_signal:
+                try:
+                    event: boxhead_event.Event = self._queue_from_plugins.get(
+                        True, 0.1)
+                    logger.debug('recieved %s', event)
+                except queue.Empty:
+                    pass
+                except ValueError:
+                    logger.error('queue from plugins closed')
 
         logger.debug('exited main loop')
 
@@ -308,6 +392,7 @@ def main() -> None:
     """Reads cli arguments and runs the main loop."""
 
     config = boxhead_config.Config()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-o',
