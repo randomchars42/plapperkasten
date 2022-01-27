@@ -93,8 +93,23 @@ class BoxHead:
                       config: boxhead_config.Config) -> None:
         """Gathers all packages located under path as plugins.
 
-        Each plugin is instantiated and registered for the `terminate`
-        event so its process may be stopped later on.
+        Expect the main module of the plugin package to be named
+        like the package, e.g.:
+
+        * plugin name: myplugin
+        * package name: myplugin (PATH/TO/myplugin/)
+        * main module in: myplugin.py (PATH/TO/myplugin/myplugin.py)
+
+        Expect the class of the plugin to be a descendant of
+        `boxhead.plugin.Plugin` and to be named like the package but
+        with the first letter uppercase, e.g.:
+
+        * classname: Myplugin
+
+        Each plugin is instantiated and stored in `_plugins`.
+
+        Ech plugin gets registered for the `terminate` event so its
+        process may be stopped later on, e.g., on interrupt.
 
         Args:
             path: The path to scan for packages.
@@ -116,12 +131,23 @@ class BoxHead:
                 logger.debug('blacklisted plugin: %s', name)
                 continue
 
+            # expect the main module of the plugin package to be named
+            # like the package, i.e.,
+            # plugin name: myplugin
+            # -> package name: myplugin
+            #       (PATH/TO/PLUGINS/myplugin/)
+            # -> main module in: myplugin.py
+            #       (PATH/TO/PLUGINS/myplugin/myplugin.py)
             module: ModuleType = importlib.import_module(f'{name}.{name}')
+            # expect the class of the plugin to be a descendant of
+            # boxhead.plugin.Plugin and to be named like the package but with
+            # the first letter uppercase, i.e.,
+            # classname: Myplugin
             classname: str = name[0].upper() + name[1:]
 
             try:
                 self._plugins.append(
-                    getattr(module, classname)(name, config,
+                    getattr(module, classname)(classname, config,
                                                self.get_queue_to_plugin(name),
                                                self.get_queue_from_plugins()))
                 self.register('terminate', name)
