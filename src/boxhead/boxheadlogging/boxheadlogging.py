@@ -65,7 +65,11 @@ class BoxHeadLogger(log.Logger):
 
     def __init__(self, logger: log.Logger):
         # pylint: disable=super-init-not-called
-        """"""
+        """Takes a logger instance and wraps itself around it.
+
+        Args:
+            logger: Instance of `logging.Logger`.
+        """
 
         self.__class__ = type(logger.__class__.__name__,
                               (self.__class__, logger.__class__),
