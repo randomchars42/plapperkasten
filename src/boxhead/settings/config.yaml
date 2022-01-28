@@ -27,7 +27,7 @@ core:
 #
 plugins:
 
-  hello:
+  example:
     # example
     smile: ':)'
 

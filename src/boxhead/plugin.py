@@ -22,6 +22,8 @@ class Plugin(multiprocessing.Process):
         _terminate_signal: Terminates the process if `True`.
         _to_plugin: Queue to recieve signals from the main process.
         _from_plugin: Queue to send signals to the main process.
+        _registered_events: A list of events the plugin wants to be
+            registered for.
     """
 
     def __init__(self, name: str, config: boxhead_config.Config,
@@ -51,6 +53,7 @@ class Plugin(multiprocessing.Process):
         self._terminate_signal: bool = False
         self._to_plugin: multiprocessing.Queue = to_plugin
         self._from_plugin: multiprocessing.Queue = from_plugin
+        self._registered_events: list[str] = []
 
         self.on_init(config)
         logger.debug('initialised %s', self.get_name())
@@ -77,8 +80,14 @@ class Plugin(multiprocessing.Process):
 
         logger.debug('initialising %s', self.get_name())
 
-    def on_terminate(self) -> None:
-        """Ends execution of the process after a `terminate` event."""
+    def on_terminate(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Ends execution of the process after a `terminate` event.
+
+        Args:
+            values: Values that are attached to the event (ignored).
+            params: Parameters attached to the event (ignored).
+        """
 
         self._terminate_signal = True
 
@@ -88,8 +97,7 @@ class Plugin(multiprocessing.Process):
         Gets called in regulare intervals detemined by
         `_tick_interval`.
         """
-
-        logger.debug('%s working', self.get_name())
+        ...
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
         # pylint: disable=unused-argument
@@ -116,7 +124,33 @@ class Plugin(multiprocessing.Process):
         except queue.Full:
             logger.critical('queue from plugins full')
 
+    def register_for(self, event: str) -> None:
+        """Register the plugin to be notified if an event is emitted.
+
+        Args:
+            event: The name of the event.
+        """
+
+        self._registered_events.append(event)
+
+    def get_registered_events(self) -> list[str]:
+        """Get the events to notify the plugin for.
+
+        Returns:
+            Returns a list of events the plugin is wants to get
+            registered for.
+        """
+        return self._registered_events.copy()
+
     def run(self) -> None:
+        """Gets called when the process for the plugin is started.
+
+        Will call `on_tick` every `_tick_interval` seconds and then
+        wait for any event emitted by the main process.
+
+        If an event is recieved the corresponding `on_EVENT` method is
+        called.
+        """
         logger.debug('%s running', self.get_name())
 
         signal.signal(signal.SIGINT, self.on_interrupt)
@@ -128,7 +162,8 @@ class Plugin(multiprocessing.Process):
                 event: boxhead_event.Event = self._to_plugin.get(
                     True, self._tick_interval)
                 if hasattr(self, 'on_' + event.name):
-                    getattr(self, 'on_' + event.name)()
+                    getattr(self, 'on_' + event.name)(*event.values,
+                                                      **event.params)
                 else:
                     logger.error('no method for event %s defined by %s',
                                  event.name, self.get_name())
@@ -140,5 +175,4 @@ class Plugin(multiprocessing.Process):
 
     def __del__(self) -> None:
         """Tidies up afterwards."""
-
-        logger.debug('%s is stopping', self.get_name())
+        ...

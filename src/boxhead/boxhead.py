@@ -146,10 +146,16 @@ class BoxHead:
             classname: str = name[0].upper() + name[1:]
 
             try:
-                self._plugins.append(
-                    getattr(module, classname)(classname, config,
-                                               self.get_queue_to_plugin(name),
-                                               self.get_queue_from_plugins()))
+                plugin: boxhead_plugin.Plugin = getattr(module, classname)(
+                    classname, config, self.get_queue_to_plugin(name),
+                    self.get_queue_from_plugins())
+
+                self._plugins.append(plugin)
+
+                # register plugin for events
+                for event in plugin.get_registered_events():
+                    self.register(event, name)
+                # `terminate` is mandatory
                 self.register('terminate', name)
             except AttributeError:
                 logger.error('failed to load module "%s" - "%s" missing? ',
