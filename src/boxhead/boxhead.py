@@ -446,7 +446,7 @@ def main() -> None:
         '-o',
         '--options',
         help='arbitrary configuration options as could be found in the ' +
-        'yaml-file \n' + 'formatted like path.to.option1=val1@@' +
+        'yaml file \nformatted like path.to.option1=val1@@' +
         'path2.to.option2=val2@@... \n' +
         'e.g., plugins.soundcontrol.max_volume=60@@' +
         'plugins.inputrfidusb.device=/dev/event0 \n' +
