@@ -5,7 +5,7 @@ import argparse
 import importlib
 import logging
 import multiprocessing
-#import os
+import os
 import pathlib
 import pkg_resources
 import queue
@@ -404,12 +404,14 @@ class BoxHead:
 
         self.start_logging()
 
+        logger.debug('this is boxhead running with pid %s', os.getpid())
+
         self._plugins: list[boxhead_plugin.Plugin] = []
 
         self.load_plugins(config)
 
         for plugin in self._plugins:
-            logger.debug('starting process %s', plugin)
+            logger.debug('starting process %s', plugin.get_name())
             plugin.start()
 
         if len(self._plugins) > 0:
