@@ -11,7 +11,6 @@ import pkg_resources
 import queue
 import signal
 import sys
-import threading
 
 from types import ModuleType
 
@@ -42,7 +41,7 @@ class BoxHead:
     Attributes:
         _queues_to_plugin: Queues to signal to each plugin.
         _queue_from_plugin: Queue to get input from all plugins.
-        _logger_thread: Thread that does the work of logging for all
+        _logger: Process that does the work of logging for all other
             processes.
         _logger_queue: Queue to the logger thread.
         _events: A dictionary of events and their subscribers.
@@ -350,14 +349,24 @@ class BoxHead:
         self._terminate_signal = True
 
     def start_logging(self) -> None:
-        """Create thread and a queue to log from multiple processes.
+        """Creates a process and a queue to collect log reports.
+
+        This creates a process at the recieving end of the
+        `logging.handlers.QueueHandler` that is configured by
+        `boxhead_logging`.
         """
 
         self._logger_queue: multiprocessing.Queue = boxheadlogging.get_queue()
 
-        self._logger_thread: threading.Thread = threading.Thread(
+        # Do not use a `threading.Thread` here as it is suggested.
+        # This would lead to random occurences of blocked threads on interrupt.
+        # Details may be found here:
+        # https://pythonspeed.com/articles/python-multiprocessing/
+        # https://rachelbythebay.com/w/2011/06/07/forked/
+        # https://rachelbythebay.com/w/2014/08/16/forkenv/
+        self._logger: multiprocessing.Process = multiprocessing.Process(
             target=self.run_logger, args=(self._logger_queue, ))
-        self._logger_thread.start()
+        self._logger.start()
 
     def stop_logging(self) -> None:
         """Stop the logging thread."""
@@ -416,8 +425,13 @@ class BoxHead:
 
         logger.debug('exited main loop')
 
+        for plugin in self._plugins:
+            plugin.join()
+
+        logger.debug('all plugin processes stopped')
+
         self.stop_logging()
-        self._logger_thread.join()
+        self._logger.join()
 
 
 def main() -> None:
