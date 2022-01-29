@@ -1,0 +1,6 @@
+---
+
+plugins: # use this namespace for plugin configuration
+
+  example:
+    smile: ':)'

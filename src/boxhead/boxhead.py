@@ -145,6 +145,10 @@ class BoxHead:
             classname: str = name[0].upper() + name[1:]
 
             try:
+                # load the plugin's config
+                config.load_from_path(path / name / 'config.yaml')
+
+                # load the plugin itself
                 plugin: boxhead_plugin.Plugin = getattr(module, classname)(
                     classname, config, self.get_queue_to_plugin(name),
                     self.get_queue_from_plugins())

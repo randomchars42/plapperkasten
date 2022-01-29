@@ -43,11 +43,10 @@ class Example(plugin.Plugin):
         """
         logger.debug('Hey there!')
 
-        self._smile: str = ':)'
-        #self._smile: str = config.get_str('plugins',
-        #                             'example',
-        #                             'smile',
-        #                             default=':-P')
+        self._smile: str = config.get_str('plugins',
+                                          'example',
+                                          'smile',
+                                          default=':-P')
 
         self.register_for('joke')
 

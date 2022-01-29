@@ -45,14 +45,14 @@ class Config():
         # load from APPLICATION_PATH/settings/config.ini
         path: pathlib.Path = pathlib.Path(
             pkg_resources.resource_filename(__name__, 'settings/config.yaml'))
-        self._load(path)
+        self.load_from_path(path)
         # load from user directory
         path = pathlib.Path(
             self.get_str('core', 'paths', 'user_directory', default=''))
         path = path.expanduser().resolve()
-        self._load(path)
+        self.load_from_path(path)
 
-    def _load(self, path: pathlib.Path) -> None:
+    def load_from_path(self, path: pathlib.Path) -> None:
         """Load config from file.
 
         Args:

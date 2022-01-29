@@ -27,10 +27,6 @@ core:
 #
 plugins:
 
-  example:
-    # example
-    smile: ':)'
-
   mpc:
     # increase / decrease in steps of STEP % of 100 %
     # DEPRECIATED - use Soundcontrol instead
