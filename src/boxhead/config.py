@@ -101,7 +101,7 @@ class Config():
             # this can only happen if the path was too short
             raise ValueError('Path too short.')
 
-    def get(self,
+    def _get(self,
             *path: str,
             default: T,
             convert: Callable[[T], T] = lambda t: t) -> T:
@@ -143,38 +143,38 @@ class Config():
 
     def get_int(self, *path: str, default: int) -> int:
         """Return the configuration or default, see Config.get()."""
-        return self.get(*path, default=default, convert=int)
+        return self._get(*path, default=default, convert=int)
 
     def get_str(self, *path: str, default: str) -> str:
         """Return the configuration or default, see Config.get()."""
-        return self.get(*path, default=default, convert=str)
+        return self._get(*path, default=default, convert=str)
 
     def get_bool(self, *path: str, default: bool) -> bool:
         """Return the configuration or default, see Config.get()."""
-        return self.get(*path, default=default, convert=bool)
+        return self._get(*path, default=default, convert=bool)
 
     def get_list_int(self, *path: str, default: list[int]) -> list[int]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(*path,
+        return self._get(*path,
                         default=default,
                         convert=lambda l: self._convert_list(l, int)).copy()
 
     def get_list_str(self, *path: str, default: list[str]) -> list[str]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(*path,
+        return self._get(*path,
                         default=default,
                         convert=lambda l: self._convert_list(l, str)).copy()
 
     def get_list_bool(self, *path: str, default: list[bool]) -> list[bool]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(*path,
+        return self._get(*path,
                         default=default,
                         convert=lambda l: self._convert_list(l, bool)).copy()
 
     def get_dict_int_int(self, *path: str,
                          default: dict[int, int]) -> dict[int, int]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(
+        return self._get(
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, int, int)).copy()
@@ -182,7 +182,7 @@ class Config():
     def get_dict_int_str(self, *path: str,
                          default: dict[int, str]) -> dict[int, str]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(
+        return self._get(
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, int, str)).copy()
@@ -190,7 +190,7 @@ class Config():
     def get_dict_int_bool(self, *path: str,
                           default: dict[int, bool]) -> dict[int, bool]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(
+        return self._get(
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, int, bool)).copy()
@@ -198,7 +198,7 @@ class Config():
     def get_dict_str_int(self, *path: str,
                          default: dict[str, int]) -> dict[str, int]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(
+        return self._get(
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, str, int)).copy()
@@ -206,7 +206,7 @@ class Config():
     def get_dict_str_str(self, *path: str,
                          default: dict[str, str]) -> dict[str, str]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(
+        return self._get(
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, str, str)).copy()
@@ -214,12 +214,12 @@ class Config():
     def get_dict_str_bool(self, *path: str,
                           default: dict[str, bool]) -> dict[str, bool]:
         """Return the configuration or default, see Config.get()."""
-        return self.get(
+        return self._get(
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, str, bool)).copy()
 
-    def set(self, *path, value: Any, convert: Callable[[Any], Any]) -> None:
+    def _set(self, *path, value: Any, convert: Callable[[Any], Any]) -> None:
         """Set a config value manually.
 
         Args:
@@ -245,67 +245,67 @@ class Config():
 
     def set_int(self, *path: str, value: int):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path, value=value, convert=int)
+        self._set(*path, value=value, convert=int)
 
     def set_str(self, *path: str, value: str):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path, value=value, convert=str)
+        self._set(*path, value=value, convert=str)
 
     def set_bool(self, *path: str, value: bool):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path, value=value, convert=bool)
+        self._set(*path, value=value, convert=bool)
 
     def set_list_int(self, *path: str, value: list[int]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda l: self._convert_list(l, int))
 
     def set_list_str(self, *path: str, value: list[str]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda l: self._convert_list(l, str))
 
     def set_list_bool(self, *path: str, value: list[bool]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda l: self._convert_list(l, bool))
 
     def set_dict_int_int(self, *path: str, value: dict[int, int]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda d: self._convert_dict(d, int, int))
 
     def set_dict_int_str(self, *path: str, value: dict[int, str]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda d: self._convert_dict(d, int, str))
 
     def set_dict_int_bool(self, *path: str, value: dict[int, bool]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda d: self._convert_dict(d, int, bool))
 
     def set_dict_str_int(self, *path: str, value: dict[str, int]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda d: self._convert_dict(d, str, int))
 
     def set_dict_str_str(self, *path: str, value: dict[str, str]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda d: self._convert_dict(d, str, str))
 
     def set_dict_str_bool(self, *path: str, value: dict[str, bool]):
         """Set the value for a config path, see Config.set()."""
-        self.set(*path,
+        self._set(*path,
                  value=value,
                  convert=lambda d: self._convert_dict(d, str, bool))
 
