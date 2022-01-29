@@ -43,9 +43,9 @@ class Example(plugin.Plugin):
         """
         logger.debug('Hey there!')
 
-        self._smile: str = config.get_str('plugins',
-                                          'example',
-                                          'smile',
+        self._smile: str = config.get_str('plugins',    # <- domain for plugins
+                                          'example',    # <- plugin name
+                                          'smile',      # <- value
                                           default=':-P')
 
         self.register_for('joke')
