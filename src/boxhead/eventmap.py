@@ -60,7 +60,7 @@ class EventMap(keymap.KeyMap):
             pathlib.Path(
                 pkg_resources.resource_filename(__name__,
                                                 'settings/events.map')))
-        # load from USER_DIR
+        # load from USER_DIR/events.map
         self._load(self.get_path_user_map())
 
     def get_event(self, key: str) -> event.Event:
@@ -80,6 +80,8 @@ class EventMap(keymap.KeyMap):
         except KeyError as e:
             logger.error('no event for key: "%s"', key)
             raise KeyError from e
+        except IndexError:
+            return event.Event('')
 
     def update_event(self, key: str, event_name: str, *values: str,
                      **params: str) -> None:

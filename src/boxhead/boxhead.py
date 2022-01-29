@@ -16,6 +16,7 @@ from types import ModuleType
 
 from boxhead import config as boxhead_config
 from boxhead import event as boxhead_event
+from boxhead import eventmap
 from boxhead import plugin as boxhead_plugin
 from boxhead.boxheadlogging import boxheadlogging
 
@@ -46,6 +47,7 @@ class BoxHead:
         _logger_queue: Queue to the logger thread.
         _events: A dictionary of events and their subscribers.
         _plugins: A list of plugin.
+        _eventmap: A map of raw events and events to emit.
     """
 
     def load_plugins(self, config: boxhead_config.Config) -> None:
@@ -395,6 +397,25 @@ class BoxHead:
                 break
             thread_logger.handle(record)
 
+    def process_event(self, event: boxhead_event.Event) -> None:
+        """Process incoming events.
+
+        Events named 'raw' will be looked the event map. All other
+        events will be emitted.
+
+        Args:
+            event: The event to process.
+        """
+        if event.name == 'raw':
+            event = self._eventmap.get_event(event.values[0])
+
+        if event.name == '':
+            # empty event
+            # occurs e.g. if the key is not found
+            return
+
+        self.emit(event.name, *event.values, **event.params)
+
     def run(self, config: boxhead_config.Config) -> None:
         """Run the application.
 
@@ -418,12 +439,15 @@ class BoxHead:
             logger.debug('starting process %s', plugin.get_name())
             plugin.start()
 
+        self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
+
         if len(self._plugins) > 0:
             while not self._terminate_signal:
                 try:
                     event: boxhead_event.Event = self._queue_from_plugins.get(
                         True, 0.1)
                     logger.debug('recieved %s', event)
+                    self.process_event(event)
                 except queue.Empty:
                     pass
                 except ValueError:
