@@ -119,7 +119,7 @@ class Plugin(multiprocessing.Process):
             **parameters: A dictionary of parameters.
         """
         try:
-            self._to_plugin.put_nowait(
+            self._from_plugin.put_nowait(
                 boxhead_event.Event(name, *values, **params))
         except queue.Full:
             logger.critical('queue from plugins full')
