@@ -63,7 +63,7 @@ class BoxHeadLogger(log.Logger):
     type hinting the logger object.
     """
 
-    def __init__(self, logger: log.Logger):
+    def __init__(self, logger: log.Logger) -> None:
         # pylint: disable=super-init-not-called
         """Takes a logger instance and wraps itself around it.
 
