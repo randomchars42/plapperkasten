@@ -17,6 +17,8 @@ core:
   system:
     # time to set for shutdown command
     shutdown_time: 0
+    # will prevent certain actions like real shutdown
+    debug: False
 
   plugins:
     # suppress loading of plugins

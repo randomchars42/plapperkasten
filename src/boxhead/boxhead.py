@@ -539,6 +539,8 @@ def main() -> None:
     levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
     root_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger()
     root_logger.setLevel(levels[args.verbosity])
+    if levels[args.verbosity] == 'DEBUG':
+        config.set_bool('core', 'system', 'debug', value=True)
 
     if not args.options == '':
         for option in args.options.split('@@'):
