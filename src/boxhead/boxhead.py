@@ -414,6 +414,11 @@ class BoxHead:
             # occurs e.g. if the key is not found
             return
 
+        if hasattr(self, 'on_' + event.name):
+            # the way of the meain process to respond to events
+            # just check if an `on_EVENT` function is defined
+            getattr(self, 'on_' + event.name)(*event.values, **event.params)
+
         self.emit(event.name, *event.values, **event.params)
 
     def run(self, config: boxhead_config.Config) -> None:
