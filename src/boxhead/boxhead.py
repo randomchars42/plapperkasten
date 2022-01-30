@@ -42,12 +42,11 @@ class BoxHead:
     Attributes:
         _queues_to_plugin: Queues to signal to each plugin.
         _queue_from_plugin: Queue to get input from all plugins.
-        _logger: Process that does the work of logging for all other
-            processes.
         _logger_queue: Queue to the logger thread.
         _events: A dictionary of events and their subscribers.
         _plugins: A list of plugin.
         _eventmap: A map of raw events and events to emit.
+        _shutdown_signal: Shutdown after all processes stopped?
     """
 
     def load_plugins(self, config: boxhead_config.Config) -> None:
@@ -354,6 +353,30 @@ class BoxHead:
         self.emit('terminate')
         self._terminate_signal = True
 
+    def on_shutdown(self) -> None:
+        """Prepare for shutdown."""
+        self.emit('terminate')
+        self._shutdown_signal = True
+        self._terminate_signal = True
+
+    def shutdown(self, shutdown_time: int) -> None:
+        """Actual shutdown procedure when all processes have stopped.
+
+        Args:
+            shutdown_time: Time in minutes to set for shutdown.
+        """
+
+        if not self._shutdown_signal:
+            logger.debug('shutdown flag not set')
+            return
+
+        if not self._terminate_signal:
+            # this should not be reached
+            logger.error('processes have not been told to stop yet')
+            return
+
+        os.system(f'shutdown -P {str(shutdown_time)}')
+
     def start_logging(self) -> None:
         """Creates a process and a queue to collect log reports.
 
@@ -415,8 +438,6 @@ class BoxHead:
             return
 
         if hasattr(self, 'on_' + event.name):
-            # the way of the meain process to respond to events
-            # just check if an `on_EVENT` function is defined
             getattr(self, 'on_' + event.name)(*event.values, **event.params)
 
         self.emit(event.name, *event.values, **event.params)
@@ -431,6 +452,7 @@ class BoxHead:
         signal.signal(signal.SIGTERM, self.on_interrupt)
 
         self._terminate_signal = False
+        self._shutdown_signal = False
 
         self.start_logging()
 
@@ -467,6 +489,9 @@ class BoxHead:
 
         self.stop_logging()
         self._logger.join()
+
+        self.shutdown(
+            config.get_int('core', 'system', 'shutdown_time', default=1))
 
 
 def main() -> None:
