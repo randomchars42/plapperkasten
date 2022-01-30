@@ -366,23 +366,19 @@ class BoxHead:
         self._shutdown_signal = True
         self._terminate_signal = True
 
-    def shutdown(self, shutdown_time: int) -> None:
+    def shutdown(self, shutdown_time: int, debug: bool) -> None:
         """Actual shutdown procedure when all processes have stopped.
 
         Args:
             shutdown_time: Time in minutes to set for shutdown.
         """
 
-        if not self._shutdown_signal:
-            logger.debug('shutdown flag not set')
-            return
-
-        if not self._terminate_signal:
+        if not self._shutdown_signal or not self._terminate_signal:
             # this should not be reached
-            logger.error('processes have not been told to stop yet')
             return
 
-        os.system(f'shutdown -P {str(shutdown_time)}')
+        if not debug:
+            os.system(f'shutdown -P {str(shutdown_time)}')
 
     def start_logging(self) -> None:
         """Creates a process and a queue to collect log reports.
@@ -500,7 +496,8 @@ class BoxHead:
         self._logger.join()
 
         self.shutdown(
-            config.get_int('core', 'system', 'shutdown_time', default=1))
+            config.get_int('core', 'system', 'shutdown_time', default=1),
+            config.get_bool('core', 'system', 'debug', default=False))
 
 
 def main() -> None:
