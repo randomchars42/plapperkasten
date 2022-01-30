@@ -342,7 +342,7 @@ class BoxHead:
                 logger.error('queue to %s has been destroyed', subscriber)
 
     def on_interrupt(self, signal_num: int, frame: object) -> None:
-        #pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         """Stop the running process on interrupt.
 
         Args:
@@ -353,8 +353,15 @@ class BoxHead:
         self.emit('terminate')
         self._terminate_signal = True
 
-    def on_shutdown(self) -> None:
-        """Prepare for shutdown."""
+    def on_shutdown(self, *values, **params) -> None:
+        # pylint: disable=unused-argument
+        """Prepare for shutdown.
+
+        Args:
+            values: Values that are attached to the event (ignored).
+            params: Parameters attached to the event (ignored).
+        """
+
         self.emit('terminate')
         self._shutdown_signal = True
         self._terminate_signal = True
@@ -438,6 +445,8 @@ class BoxHead:
             return
 
         if hasattr(self, 'on_' + event.name):
+            # the way of the main process to respond to events
+            # just check if an `on_EVENT` function is defined
             getattr(self, 'on_' + event.name)(*event.values, **event.params)
 
         self.emit(event.name, *event.values, **event.params)
