@@ -9,7 +9,7 @@ authors = [
 {name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
 ]
 maintainers = [
-{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'}
+{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
 ]
 classifiers = [
     'License :: OSI Approved :: The Unlicense (Unlicense)',
@@ -21,7 +21,12 @@ classifiers = [
     'Programming Language :: Python'
 ]
 dependencies = [
-    'pyyaml>=5'
+    'pyyaml>=5',
+]
+
+[project.optional-dependencies]
+gpiod = [
+    'gpiodmonitor>=1.0.0'
 ]
 
 [project.urls]

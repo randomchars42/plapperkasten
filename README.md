@@ -43,7 +43,7 @@ logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 
 #### Semi-optional:
 
-* `libgpiod` with `python3-libgpiod` if you plan to use the `inputgpiod`-plugin. Alternatively you may implement the functionality using `RPi.GPIO` or any library of your choice.
+* `libgpiod` with `python3-libgpiod` and `gpiodmonitor>=1.0.0` if you plan to use the `inputgpiod`-plugin. Alternatively you may implement the functionality using `RPi.GPIO` or any library of your choice.
 
 #### Recommendations
 

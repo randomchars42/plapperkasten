@@ -1,0 +1,11 @@
+---
+plugins:
+  inputgpiod:
+    # the number of the chip (0 if in doubt)
+    chip: 0
+    # the BCM numbers of the pins to monitor for short presses
+    press_short: []
+    # the BCM number of the pins to monitor for long presses
+    press_long: []
+    # the number of seconds before a long press is assumed
+    long_press_duration: 2

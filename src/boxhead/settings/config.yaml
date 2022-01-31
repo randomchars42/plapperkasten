@@ -22,7 +22,7 @@ core:
 
   plugins:
     # suppress loading of plugins
-    blacklist: ''
+    blacklist: []
 
 #
 # standard plugins
@@ -42,16 +42,6 @@ plugins:
   inputrfidusb:
     # the unix event id
     device: '/dev/input/event7'
-
-  inputgpiod:
-    # listen on this chip
-    chip: 0
-    # listen to these pins
-    pins: [12,13,24,25,27]
-    # wait for long presses on these pins
-    pins_long_press: 12
-    # wait for X seconds before calling it a long press
-    long_press: 3
 
   soundcontrol:
     # increase / decrease in steps of STEP % of 100 %
