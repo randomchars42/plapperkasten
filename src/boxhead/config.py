@@ -20,23 +20,38 @@ logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 class Config():
     """Representation of the configuration.
 
-    Configuration can be set in two different ways:
+    Configuration can be set in several different ways:
     * APPLICATION_PATH/settings/config.yml (application's defaults)
-    * path specified in config above (~/.config/boxcontroller/config.yaml)
+    * each plugin's config.yaml
+    * user's config file (default: ~/.config/boxhead/config.yaml)
     * script params
     Where the latter configurations override the former configurations.
 
-    Provides functions that will type check the retrieved or set values.
+    Provides functions that will convert the retrieved or set values.
 
     Attributes:
-        _config: Dictionary holding the configuration.
+        _config_default: Dictionary holding the configuration as
+            specified the programme / plugin.
+        _config_user: Dictionary holding the configuration as specified
+            by the user in the user's config file (default:
+            ~/.config/boxhead/config.yaml)
+        _config_input: Dictionary holding the configuration specified
+            via the CLI.
+        _config_active: Dictionary holding the consolidated version of
+            all configurations
+        _consolidated: Have the sources of configuration been merged
+            yet?
     """
 
     def __init__(self) -> None:
         """Initialise variables and load config from file(s).
         """
 
-        self._config: dict[str, Any] = {}
+        self._config_default: dict[str, Any] = {}
+        self._config_user: dict[str, Any] = {}
+        self._config_input: dict[str, Any] = {}
+        self._config_active: dict[str, Any] = {}
+        self._consolidated = True
         self.load()
 
     def load(self) -> None:
@@ -45,29 +60,82 @@ class Config():
         # load from APPLICATION_PATH/settings/config.ini
         path: pathlib.Path = pathlib.Path(
             pkg_resources.resource_filename(__name__, 'settings/config.yaml'))
-        self.load_from_path(path)
+        self.load_from_path(path, 'default')
         # load from user directory
         path = pathlib.Path(
-            self.get_str('core', 'paths', 'user_directory', default=''))
+            self.get_str('core', 'paths', 'user_directory', default=''),
+            'config.yaml')
         path = path.expanduser().resolve()
-        self.load_from_path(path)
+        self.load_from_path(path, 'user')
 
-    def load_from_path(self, path: pathlib.Path) -> None:
+    def load_from_path(self,
+                       path: pathlib.Path,
+                       target: str = 'default') -> None:
         """Load config from file.
 
         Args:
             path: Path to load config from.
+            target: The id of the dictionary to laod the config into.
         """
 
         try:
             with open(path, 'r', encoding='utf-8') as configfile:
-                self._config.update(yaml.safe_load(configfile))
+
+                if target == 'user':
+                    self._config_user.update(yaml.safe_load(configfile))
+                elif target == 'input':
+                    self._config_input.update(yaml.safe_load(configfile))
+                else:
+                    self._config_default.update(yaml.safe_load(configfile))
+            self._consolidated = False
         except yaml.YAMLError:
             logger.debug('error while parsing %s', str(path))
         except FileNotFoundError:
             logger.debug('could not open config file at %s', str(path))
         else:
             logger.debug('loaded config from: %s', str(path))
+
+    def consolidate_config(self):
+        """Called after all plugins' config files are loaded."""
+        self._config_active = self.merge_dicts(self._config_active,
+                                               self._config_default)
+        self._config_active = self.merge_dicts(self._config_active,
+                                               self._config_user)
+        self._config_active = self.merge_dicts(self._config_active,
+                                               self._config_input)
+        self._consolidated = True
+
+    def merge_dicts(self,
+                    a: dict[Any, Any],
+                    b: dict[Any, Any],
+                    path: list[Any] = None) -> dict[Any, Any]:
+        """Merges dictionary b into a.
+
+        Args:
+            a: The dictionary to get updated.
+            b: The dictionary to merge into a.
+
+        Returns:
+            The final dictionary.
+        """
+
+        # Found here:
+        # <https://stackoverflow.com/questions/7204805/how-to-merge-dictionaries-of-dictionaries>
+        if path is None:
+            path = []
+        for key in b:
+            if key in a:
+                if isinstance(a[key], dict) and isinstance(b[key], dict):
+                    self.merge_dicts(a[key], b[key], path + [str(key)])
+                elif a[key] == b[key]:
+                    pass  # same leaf value
+                else:
+                    a[key] = b[key]
+                    #raise Exception(
+                    #    f'Conflict at {".".join(path + [str(key)])}')
+            else:
+                a[key] = b[key]
+        return a
 
     def _get_last_branch(self, *path: str, config_part: dict) -> dict:
         """Return the last branch, a dict, before the leave.
@@ -102,9 +170,9 @@ class Config():
             raise ValueError('Path too short.')
 
     def _get(self,
-            *path: str,
-            default: T,
-            convert: Callable[[T], T] = lambda t: t) -> T:
+             *path: str,
+             default: T,
+             convert: Callable[[T], T] = lambda t: t) -> T:
         """Return the specified configuration or default.
 
 
@@ -124,8 +192,11 @@ class Config():
         if len(path) <= 2:
             raise ValueError('Path too short.')
 
+        if not self._consolidated:
+            self.consolidate_config()
+
         last_branch: dict[str, Any] = self._get_last_branch(
-            *path, config_part=self._config)
+            *path, config_part=self._config_active)
 
         # will throw an uncaught error and thus expose invalid defaults
         value: T = convert(default)
@@ -156,20 +227,20 @@ class Config():
     def get_list_int(self, *path: str, default: list[int]) -> list[int]:
         """Return the configuration or default, see Config.get()."""
         return self._get(*path,
-                        default=default,
-                        convert=lambda l: self._convert_list(l, int)).copy()
+                         default=default,
+                         convert=lambda l: self._convert_list(l, int)).copy()
 
     def get_list_str(self, *path: str, default: list[str]) -> list[str]:
         """Return the configuration or default, see Config.get()."""
         return self._get(*path,
-                        default=default,
-                        convert=lambda l: self._convert_list(l, str)).copy()
+                         default=default,
+                         convert=lambda l: self._convert_list(l, str)).copy()
 
     def get_list_bool(self, *path: str, default: list[bool]) -> list[bool]:
         """Return the configuration or default, see Config.get()."""
         return self._get(*path,
-                        default=default,
-                        convert=lambda l: self._convert_list(l, bool)).copy()
+                         default=default,
+                         convert=lambda l: self._convert_list(l, bool)).copy()
 
     def get_dict_int_int(self, *path: str,
                          default: dict[int, int]) -> dict[int, int]:
@@ -219,12 +290,17 @@ class Config():
             default=default,
             convert=lambda d: self._convert_dict(d, str, bool)).copy()
 
-    def _set(self, *path, value: Any, convert: Callable[[Any], Any]) -> None:
+    def _set(self,
+             *path,
+             value: Any,
+             convert: Callable[[Any], Any],
+             target: str = 'default') -> None:
         """Set a config value manually.
 
         Args:
             *path: The path to the value to set.
             value: The value.
+            target: The target.
 
         Raises:
             ValueError: If no path or the path is only two items long
@@ -235,79 +311,124 @@ class Config():
         if len(path) <= 2:
             raise ValueError('Path too short.')
 
-        last_branch: dict[str, Any] = self._get_last_branch(
-            *path, config_part=self._config)
+        config: dict[str, Any]
+
+        if target == 'user':
+            config = self._config_user
+        elif target == 'input':
+            config = self._config_input
+        else:
+            config = self._config_default
+
+        last_branch: dict[str, Any] = self._get_last_branch(*path,
+                                                            config_part=config)
 
         if not path[-1] in last_branch:
             logger.error('no such config: "%s"', '.'.join(path))
 
         last_branch[path[-1]] = convert(value)
 
-    def set_int(self, *path: str, value: int):
+    def set_int(self, *path: str, value: int, target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
-        self._set(*path, value=value, convert=int)
+        self._set(*path, value=value, convert=int, target=target)
 
-    def set_str(self, *path: str, value: str):
+    def set_str(self, *path: str, value: str, target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
-        self._set(*path, value=value, convert=str)
+        self._set(*path, value=value, convert=str, target=target)
 
-    def set_bool(self, *path: str, value: bool):
+    def set_bool(self, *path: str, value: bool, target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
-        self._set(*path, value=value, convert=bool)
+        self._set(*path, value=value, convert=bool, target=target)
 
-    def set_list_int(self, *path: str, value: list[int]):
+    def set_list_int(self,
+                     *path: str,
+                     value: list[int],
+                     target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda l: self._convert_list(l, int))
+                  value=value,
+                  convert=lambda l: self._convert_list(l, int),
+                  target=target)
 
-    def set_list_str(self, *path: str, value: list[str]):
+    def set_list_str(self,
+                     *path: str,
+                     value: list[str],
+                     target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda l: self._convert_list(l, str))
+                  value=value,
+                  convert=lambda l: self._convert_list(l, str),
+                  target=target)
 
-    def set_list_bool(self, *path: str, value: list[bool]):
+    def set_list_bool(self,
+                      *path: str,
+                      value: list[bool],
+                      target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda l: self._convert_list(l, bool))
+                  value=value,
+                  convert=lambda l: self._convert_list(l, bool),
+                  target=target)
 
-    def set_dict_int_int(self, *path: str, value: dict[int, int]):
+    def set_dict_int_int(self,
+                         *path: str,
+                         value: dict[int, int],
+                         target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda d: self._convert_dict(d, int, int))
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, int, int),
+                  target=target)
 
-    def set_dict_int_str(self, *path: str, value: dict[int, str]):
+    def set_dict_int_str(self,
+                         *path: str,
+                         value: dict[int, str],
+                         target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda d: self._convert_dict(d, int, str))
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, int, str),
+                  target=target)
 
-    def set_dict_int_bool(self, *path: str, value: dict[int, bool]):
+    def set_dict_int_bool(self,
+                          *path: str,
+                          value: dict[int, bool],
+                          target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda d: self._convert_dict(d, int, bool))
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, int, bool),
+                  target=target)
 
-    def set_dict_str_int(self, *path: str, value: dict[str, int]):
+    def set_dict_str_int(self,
+                         *path: str,
+                         value: dict[str, int],
+                         target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda d: self._convert_dict(d, str, int))
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, str, int),
+                  target=target)
 
-    def set_dict_str_str(self, *path: str, value: dict[str, str]):
+    def set_dict_str_str(self,
+                         *path: str,
+                         value: dict[str, str],
+                         target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda d: self._convert_dict(d, str, str))
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, str, str),
+                  target=target)
 
-    def set_dict_str_bool(self, *path: str, value: dict[str, bool]):
+    def set_dict_str_bool(self,
+                          *path: str,
+                          value: dict[str, bool],
+                          target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
-                 value=value,
-                 convert=lambda d: self._convert_dict(d, str, bool))
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, str, bool),
+                  target=target)
 
     def _convert_list(self, convert_from: list[T],
                       convert: Callable[[T], U]) -> list[U]:

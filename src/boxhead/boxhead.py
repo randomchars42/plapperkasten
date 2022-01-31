@@ -537,7 +537,7 @@ def main() -> None:
     root_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger()
     root_logger.setLevel(levels[args.verbosity])
     if levels[args.verbosity] == 'DEBUG':
-        config.set_bool('core', 'system', 'debug', value=True)
+        config.set_bool('core', 'system', 'debug', value=True, target='input')
 
     if not args.options == '':
         for option in args.options.split('@@'):
