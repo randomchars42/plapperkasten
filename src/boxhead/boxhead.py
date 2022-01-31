@@ -138,7 +138,11 @@ class BoxHead:
             #       (PATH/TO/PLUGINS/myplugin/)
             # -> main module in: myplugin.py
             #       (PATH/TO/PLUGINS/myplugin/myplugin.py)
-            module: ModuleType = importlib.import_module(f'{name}.{name}')
+            try:
+                module: ModuleType = importlib.import_module(f'{name}.{name}')
+            except ModuleNotFoundError:
+                logger.error('could not load plugin %s', name)
+                continue
             # expect the class of the plugin to be a descendant of
             # boxhead.plugin.Plugin and to be named like the package but with
             # the first letter uppercase, i.e.,
