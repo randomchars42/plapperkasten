@@ -96,9 +96,18 @@ class Config():
             logger.debug('loaded config from: %s', str(path))
 
     def consolidate_config(self):
-        """Called after all plugins' config files are loaded."""
-        self._config_active = self.merge_dicts(self._config_active,
-                                               self._config_default)
+        """Merge configuration from different sources.
+
+        Will be called before `_get()` / `get_*` if `_consolidated` is
+        `False`.
+
+        It will then take the configuration from the built-in
+        `config.yaml` files as a basis and update it with the
+        configuration from the user's `config.yaml` and last the
+        script parameters if any.
+        """
+
+        self._config_active = self._config_default
         self._config_active = self.merge_dicts(self._config_active,
                                                self._config_user)
         self._config_active = self.merge_dicts(self._config_active,
