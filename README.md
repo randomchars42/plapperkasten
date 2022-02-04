@@ -63,7 +63,7 @@ cd boxhead
 # consider adding this to your .bashrc / equivalent for your shell:
 # `export PIPENV_VENV_IN_PROJECT=1`
 # this leads to a folder `.venv` being created at the project root
-# otherwise you might need to tweak the `[tools.mypy]`` path in
+# otherwise you might need to tweak the `[tool.mypy]`` path in
 # `pyproject.toml` (depending on your editor setup).
 
 # setup a virtual environment with set python version

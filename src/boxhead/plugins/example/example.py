@@ -35,8 +35,8 @@ class Example(plugin.Plugin):
           gets called everytime `specialevent` is emitted by the main
           process
 
-        You may set after which interval `on_tick` is called by setting
-        the appropriate value of `_tick_interval` [s].
+        You can define after which interval `on_tick` is called by
+        setting `_tick_interval` to the respective value in seconds.
 
         Args:
             config: The configuration.
@@ -45,7 +45,7 @@ class Example(plugin.Plugin):
 
         self._smile: str = config.get_str('plugins',    # <- domain for plugins
                                           'example',    # <- plugin name
-                                          'smile',      # <- value
+                                          'smile',      # <- setting name
                                           default=':-P')
 
         self.register_for('joke')
