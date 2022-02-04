@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 inputgpiod = [
-    'gpiodmonitor>=1.0.0'
+    'gpiodmonitor>=1.2.0'
 ]
 
 [project.urls]

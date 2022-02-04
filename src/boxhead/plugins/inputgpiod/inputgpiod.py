@@ -29,7 +29,8 @@ class Inputgpiod(plugin.Plugin):
         """
 
         self._monitor: gpiodmonitor.GPIODMonitor = gpiodmonitor.GPIODMonitor(
-            config.get_int('plugins', 'gpiodmonitor', 'chip', default=0))
+            chip=config.get_int('plugins', 'gpiodmonitor', 'chip', default=0),
+            active_pulses=True)
 
         long_press_duration: int = config.get_int('plugins',
                                                   'gpiodmonitor',
