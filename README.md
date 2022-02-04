@@ -47,7 +47,7 @@ logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 
 #### Recommendations
 
-* `pipenv` to create a virtualenvironment with a defined python version
+* `pipenv` to create a virtual environment with a defined python version
 
   ```sh
   pip3 install pipenv
@@ -60,10 +60,18 @@ git clone git@github.com:randomchars42/boxhead.git
 
 cd boxhead
 
+# consider adding this to your .bashrc / equivalent for your shell:
+# `export PIPENV_VENV_IN_PROJECT=1`
+# this leads to a folder `.venv` being created at the project root
+# otherwise you might need to tweak the `[tools.mypy]`` path in
+# `pyproject.toml` (depending on your editor setup).
+
 # setup a virtual environment with set python version
 # set the version to >= 3.9
 pipenv --python 3.9
 
+# install development dependencies
+pipenv install --dev
 
 # activate venv
 pipenv shell

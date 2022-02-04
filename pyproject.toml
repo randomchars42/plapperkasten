@@ -25,15 +25,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gpiod = [
+inputgpiod = [
     'gpiodmonitor>=1.0.0'
 ]
 
 [project.urls]
-homepage = 'https://github.com/randomchars42/boxcontroller'
-documentation = 'https://github.com/randomchars42/boxcontroller'
-source = 'https://github.com/randomchars42/boxcontroller'
-tracker = 'https://github.com/randomchars42/boxcontroller/issues'
+homepage = 'https://github.com/randomchars42/boxhead'
+documentation = 'https://github.com/randomchars42/boxhead'
+source = 'https://github.com/randomchars42/boxhead'
+tracker = 'https://github.com/randomchars42/boxhead/issues'
 
 [project.scripts]
 boxhead = 'boxhead.boxhead:main'
@@ -45,8 +45,13 @@ requires = [
     'setuptools',
     'types-setuptools',
     'types-pyyaml',
-    'mypy',
-    'pylint',
-    'yapf'
 ]
 build-backend = 'setuptools.build_meta'
+
+[tool.mypy]
+# add .venv to the mypy path to detect imported packages installed by
+# pipenv
+# update the path locally to match your settings, i.e. change the
+# python version and the path to the venv as it currently depends on
+# `export PIPENV_VENV_IN_PROJECT=1` being set
+mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/'
