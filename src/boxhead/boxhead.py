@@ -366,8 +366,13 @@ class BoxHead:
             params: Parameters attached to the event (ignored).
         """
 
+        # notify plugins that shutdown is iminent
+        self.emit('shutdown')
+        # stop plugins
         self.emit('terminate')
+        # switch from just exiting to shutdown
         self._shutdown_signal = True
+        # end main loop
         self._terminate_signal = True
 
     def shutdown(self, shutdown_time: int, debug: bool) -> None:
@@ -476,6 +481,11 @@ class BoxHead:
             plugin.start()
 
         self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
+
+
+        self.emit('finished_loading')
+        self.emit('error')
+        self.emit('feedback')
 
         if len(self._plugins) > 0:
             while not self._terminate_signal:
