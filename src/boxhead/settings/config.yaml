@@ -27,92 +27,43 @@ core:
 #
 # standard plugins
 #
-plugins:
-
-  mpc:
-    # increase / decrease in steps of STEP % of 100 %
-    # DEPRECIATED - use Soundcontrol instead
-    volume_step: 5
-    # the path to the keymap containing all status information
-    # relative to the user config directory
-    path_status: 'mpd_status'
-    # the interval for polling MPD's status in seconds
-    interval_poll: 5
-
-  inputrfidusb:
-    # the unix event id
-    device: '/dev/input/event7'
-
-  soundcontrol:
-    # increase / decrease in steps of STEP % of 100 %
-    volume_step: 5
-    # small file where the maximal allowed volume is smalled in
-    # relative to the user config directory
-    path_max_volume: max_volume
-    # maximal volume
-    # fallback if nothing has been stored in max_volume
-    max_volume: 80
-
-  onoffshim:
-    # listen on this chip
-    chip: 0
-    # pin to pull down for next reboot
-    # if you change this pin you need to edit:
-    # /usr/lib/systemd/system-shutdown/boxcontroller_poweroff.shutdown
-    pin_shutdown: 4
-    # pin to listen to for shutdown signal
-    pin_listen: 17
-
-  soundeffect:
-    # path to sounds
-    # either absolute or relative to the plugin
-    path: './sounds/'
-    # Sounds provided by the plugin:
-    # 144319__fumiya112__decide.wav
-    # CC0
-    # by fumiya
-    # https://freesound.org/people/fumiya112/sounds/144319/
-    #
-    # 331381__qubodup__public-domain-jump-sound.wav
-    # CC0
-    # by qubodup
-    # https://freesound.org/people/qubodup/sounds/331381/
-    #
-    # 273925__lemonjolly__hooray-yeah.wav
-    # CCby
-    # by lemonjolly
-    # https://freesound.org/people/lemonjolly/sounds/273925/
-    #
-    # 55001__stib__uh-oh.wav
-    # CCby
-    # by stib
-    # https://freesound.org/people/stib/sounds/55001/
-    #
-    # 531510__eponn__correct-blips.wav
-    # CC0
-    # by Eponn
-    # https://freesound.org/people/Eponn/sounds/531510/
-    #
-    # 411460__inspectorj__power-up-bright-a.wav
-    # CCby
-    # by InspectorJ
-    # https://freesound.org/people/InspectorJ/sounds/411460/
-    #
-    # 528867__eponn__beep-5.wav
-    # CC0
-    # by Eponn
-    # https://freesound.org/people/Eponn/sounds/528867/
-    #
-    # sound on startup
-    ready: '144319__fumiya112__decide.wav'
-    # sound on shutdown
-    shutdown: '528867__eponn__beep-5.wav'
-    # sound on error
-    error: '31381__qubodup__public-domain-jump-sound.wav'
-    # sound on feedback
-    feedback: '531510__eponn__correct-blips.wav'
-
-  shutdowntimer:
-    # request shutdown after X seconds of idle time
-    # 5 minutes = 300 seconds
-    idle_time: 300
+#plugins:
+#
+#  mpc:
+#    # increase / decrease in steps of STEP % of 100 %
+#    # DEPRECIATED - use Soundcontrol instead
+#    volume_step: 5
+#    # the path to the keymap containing all status information
+#    # relative to the user config directory
+#    path_status: 'mpd_status'
+#    # the interval for polling MPD's status in seconds
+#    interval_poll: 5
+#
+#  inputrfidusb:
+#    # the unix event id
+#    device: '/dev/input/event7'
+#
+#  soundcontrol:
+#    # increase / decrease in steps of STEP % of 100 %
+#    volume_step: 5
+#    # small file where the maximal allowed volume is smalled in
+#    # relative to the user config directory
+#    path_max_volume: max_volume
+#    # maximal volume
+#    # fallback if nothing has been stored in max_volume
+#    max_volume: 80
+#
+#  onoffshim:
+#    # listen on this chip
+#    chip: 0
+#    # pin to pull down for next reboot
+#    # if you change this pin you need to edit:
+#    # /usr/lib/systemd/system-shutdown/boxcontroller_poweroff.shutdown
+#    pin_shutdown: 4
+#    # pin to listen to for shutdown signal
+#    pin_listen: 17
+#
+#  shutdowntimer:
+#    # request shutdown after X seconds of idle time
+#    # 5 minutes = 300 seconds
+#    idle_time: 300

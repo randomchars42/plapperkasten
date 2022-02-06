@@ -482,10 +482,7 @@ class BoxHead:
 
         self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
 
-
         self.emit('finished_loading')
-        self.emit('error')
-        self.emit('feedback')
 
         if len(self._plugins) > 0:
             while not self._terminate_signal:
