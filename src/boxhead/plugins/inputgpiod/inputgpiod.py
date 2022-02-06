@@ -82,8 +82,7 @@ class Inputgpiod(plugin.Plugin):
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
 
-        # pylint: disable=unused-variable
-        with self._monitor.open_chip() as chip:
+        with self._monitor.open_chip():
             while not self._terminate_signal:
                 try:
                     event: boxhead_event.Event = self._to_plugin.get(
