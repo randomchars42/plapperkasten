@@ -38,7 +38,7 @@ class EventMap(keymap.KeyMap):
         self._path_user_map: pathlib.Path = pathlib.Path(
             config.get_str('core',
                            'paths',
-                           'user_dir',
+                           'user_directory',
                            default='~/.config/boxhead/'),
             config.get_str('core', 'paths', 'eventmap', default='events.map'))
         self._path_user_map = self._path_user_map.expanduser().resolve()
