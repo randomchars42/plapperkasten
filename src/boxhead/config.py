@@ -82,11 +82,14 @@ class Config():
             with open(path, 'r', encoding='utf-8') as configfile:
 
                 if target == 'user':
-                    self._config_user.update(yaml.safe_load(configfile))
+                    self.merge_dicts(self._config_user,
+                                     yaml.safe_load(configfile))
                 elif target == 'input':
-                    self._config_input.update(yaml.safe_load(configfile))
+                    self.merge_dicts(self._config_input,
+                                     yaml.safe_load(configfile))
                 else:
-                    self._config_default.update(yaml.safe_load(configfile))
+                    self.merge_dicts(self._config_default,
+                                     yaml.safe_load(configfile))
             self._consolidated = False
         except yaml.YAMLError:
             logger.debug('error while parsing %s', str(path))
@@ -332,10 +335,8 @@ class Config():
         last_branch: dict[str, Any] = self._get_last_branch(*path,
                                                             config_part=config)
 
-        if not path[-1] in last_branch:
-            logger.error('no such config: "%s"', '.'.join(path))
-
         last_branch[path[-1]] = convert(value)
+        self._consolidated = False
 
     def set_int(self, *path: str, value: int, target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
