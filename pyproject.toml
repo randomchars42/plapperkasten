@@ -48,10 +48,15 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.mypy]
 # add .venv to the mypy path to detect imported packages installed by
 # pipenv
 # update the path locally to match your settings, i.e. change the
 # python version and the path to the venv as it currently depends on
 # `export PIPENV_VENV_IN_PROJECT=1` being set
-mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/'
+mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/:$MYPY_CONFIG_FILE_DIR/src'
