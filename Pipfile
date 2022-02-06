@@ -4,12 +4,19 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pyyaml = "*"
+pyyaml = "~=6.0"
+gpiodmonitor = "~=1.1.2"
+evdev = "~=1.4.0"
 boxhead = {editable = true, path = "."}
 
 [dev-packages]
-types-setuptools = "*"
-types-pyyaml = "*"
+docutils = "~=0.18.1"
+wheel = "~=0.37.1"
+setuptools = "~=60.6.0"
+types-setuptools = "~=57.4.8"
+types-pyyaml = "~=6.0.4"
+build = "~=0.7.0"
+twine = "~=3.8.0"
 
 [requires]
 python_version = "3.9"
