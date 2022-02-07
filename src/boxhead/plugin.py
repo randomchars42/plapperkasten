@@ -18,7 +18,7 @@ class Plugin(multiprocessing.Process):
     Attributes:
         _name: The name of the plugin that subclasses this class.
         _tick_interval: The interval with wich `on_tick()` will be
-            called.
+            called in seconds.
         _terminate_signal: Terminates the process if `True`.
         _to_plugin: Queue to recieve signals from the main process.
         _from_plugin: Queue to send signals to the main process.
@@ -49,7 +49,7 @@ class Plugin(multiprocessing.Process):
 
         multiprocessing.Process.__init__(self)
         self._name: str = name
-        self._tick_interval: int = 1
+        self._tick_interval: float = 1
         self._terminate_signal: bool = False
         self._to_plugin: multiprocessing.Queue = to_plugin
         self._from_plugin: multiprocessing.Queue = from_plugin
