@@ -15,6 +15,11 @@ logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 
 class Soundeffects(plugin.Plugin):
     """Provide auditory feedback on certain events.
+
+    Attributes:
+        _path_sounds: Path to the directory containing the sound files.
+        _sounds: Dicitionary mapping events ('ready', 'shutdown', ...)
+            to names of sound files.
     """
 
     def on_init(self, config: boxhead_config.Config) -> None:
