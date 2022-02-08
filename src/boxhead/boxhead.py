@@ -423,6 +423,8 @@ class BoxHead:
             queue: The queue that is used by the QueueFileHandler.
         """
 
+        signal.signal(signal.SIGINT, lambda signal_num, frame: ...)
+        signal.signal(signal.SIGTERM, lambda signal_num, frame: ...)
         thread_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(
             'logging_thread')
         while True:
