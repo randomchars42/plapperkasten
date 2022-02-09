@@ -153,8 +153,10 @@ class Plugin(multiprocessing.Process):
         """
         logger.debug('%s running', self.get_name())
 
-        signal.signal(signal.SIGINT, self.on_interrupt)
-        signal.signal(signal.SIGTERM, self.on_interrupt)
+        signal.signal(signal.SIGINT, lambda signal_num, frame: ...)#self.on_interrupt)
+        signal.signal(signal.SIGTERM, lambda signal_num, frame: ...)#self.on_interrupt)
+
+        self.on_run()
 
         while not self._terminate_signal:
             self.on_tick()
@@ -171,8 +173,13 @@ class Plugin(multiprocessing.Process):
                 pass
             except ValueError:
                 logger.error('%s holds a closed queue', self.get_name())
+        self.on_stop()
         logger.debug('%s exited main loop', self.get_name())
 
-    def __del__(self) -> None:
-        """Tidies up afterwards."""
+    def on_run(self) -> None:
+        """Create things in the new process."""
+        ...
+
+    def on_stop(self) -> None:
+        """Give the plugin a chance to tidy up."""
         ...
