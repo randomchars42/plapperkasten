@@ -110,7 +110,9 @@ class Config():
         script parameters if any.
         """
 
-        self._config_active = self._config_default
+        self._config_active = {}
+        self._config_active = self.merge_dicts(self._config_active,
+                                               self._config_default)
         self._config_active = self.merge_dicts(self._config_active,
                                                self._config_user)
         self._config_active = self.merge_dicts(self._config_active,
@@ -126,6 +128,7 @@ class Config():
         Args:
             a: The dictionary to get updated.
             b: The dictionary to merge into a.
+            path: A "path" (lsit of keys) to the current leaf.
 
         Returns:
             The final dictionary.
@@ -141,12 +144,15 @@ class Config():
                     self.merge_dicts(a[key], b[key], path + [str(key)])
                 elif a[key] == b[key]:
                     pass  # same leaf value
+                elif hasattr(b[key], 'copy'):
+                    a[key] = b[key].copy()
                 else:
                     a[key] = b[key]
-                    #raise Exception(
-                    #    f'Conflict at {".".join(path + [str(key)])}')
             else:
-                a[key] = b[key]
+                if hasattr(b[key], 'copy'):
+                    a[key] = b[key].copy()
+                else:
+                    a[key] = b[key]
         return a
 
     def _get_last_branch(self, *path: str, config_part: dict) -> dict:
