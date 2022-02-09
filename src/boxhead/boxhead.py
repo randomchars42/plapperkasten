@@ -491,7 +491,7 @@ class BoxHead:
                 try:
                     event: boxhead_event.Event = self._queue_from_plugins.get(
                         True, 0.1)
-                    logger.debug('recieved %s', event)
+                    logger.debug('recieved %s', event.name)
                     self.process_event(event)
                 except queue.Empty:
                     pass
