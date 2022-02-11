@@ -17,7 +17,14 @@ class Inputdevinputevent(plugin.Plugin):
     """Gather input from ``/dev/input/eventX`.
 
     Attributes:
-        _devices
+        _devices: List of devices to read input from.
+        _keys: A string to map key numbers to letters /
+            numbers.
+        _selector: The selector that handles reading the
+            devices.
+        _current_input: Dictionary of strings. One string for
+            each device, used to gather input until ENTER is
+            pressed.
     """
 
     def on_init(self, config: boxhead_config.Config) -> None:
@@ -31,7 +38,7 @@ class Inputdevinputevent(plugin.Plugin):
 
         self._device_names: list[str] = config.get_list_str(
             'plugins', 'inputdevinputevent', 'devices', default=[])
-        self.__keys: str = config.get_str('plugins',
+        self._keys: str = config.get_str('plugins',
                                           'inputdevinputevent',
                                           'layout',
                                           default='')
@@ -67,7 +74,7 @@ class Inputdevinputevent(plugin.Plugin):
                                     'raw', self._current_input[device.name])
                                 self._current_input[device.name] = ''
                         else:
-                            self._current_input[device.name] += self.__keys[
+                            self._current_input[device.name] += self._keys[
                                 event.code]
 
     def on_stop(self) -> None:
