@@ -1,4 +1,4 @@
 plugins:
   inputdevinputevent:
-    devices: ['/dev/input/event7']
+    devices: []
     layout: 'X^1234567890XXXXqwertzuiopXXXXasdfghjklXXXXXyxcvbnmXXXXXXXXXXXXXXXXXXXXXXX'
