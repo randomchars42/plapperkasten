@@ -24,6 +24,9 @@ core:
     # suppress loading of plugins
     blacklist: []
 
+  events:
+    # events that will be re-emitted when they are recieved by the main process
+    passthrough: []
 #
 # standard plugins
 #

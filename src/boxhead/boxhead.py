@@ -434,7 +434,8 @@ class BoxHead:
                 break
             thread_logger.handle(record)
 
-    def process_event(self, event: boxhead_event.Event) -> None:
+    def process_event(self, event: boxhead_event.Event,
+                      passthrough: list[str]) -> None:
         """Process incoming events.
 
         Events named 'raw' will be looked the event map. All other
@@ -442,6 +443,8 @@ class BoxHead:
 
         Args:
             event: The event to process.
+            passthrough: List of events, that  wil be re-emitted if
+                they are recieved.
         """
         if event.name == 'raw':
             event = self._eventmap.get_event(event.values[0])
@@ -456,7 +459,8 @@ class BoxHead:
             # just check if an `on_EVENT` function is defined
             getattr(self, 'on_' + event.name)(*event.values, **event.params)
 
-        self.emit(event.name, *event.values, **event.params)
+        if event.name in passthrough:
+            self.emit(event.name, *event.values, **event.params)
 
     def run(self, config: boxhead_config.Config) -> None:
         """Run the application.
@@ -473,6 +477,11 @@ class BoxHead:
         self.start_logging()
 
         logger.debug('this is boxhead running with pid %s', os.getpid())
+
+        passthrough_events: list[str] = config.get_list_str('core',
+                                                            'events',
+                                                            'passthrough',
+                                                            default=[])
 
         self._plugins: list[boxhead_plugin.Plugin] = []
 
@@ -492,7 +501,7 @@ class BoxHead:
                     event: boxhead_event.Event = self._queue_from_plugins.get(
                         True, 0.1)
                     logger.debug('recieved %s', event.name)
-                    self.process_event(event)
+                    self.process_event(event, passthrough_events)
                 except queue.Empty:
                     pass
                 except ValueError:
