@@ -47,7 +47,73 @@ class BoxHead:
         _plugins: A list of plugin.
         _eventmap: A map of raw events and events to emit.
         _shutdown_signal: Shutdown after all processes stopped?
+        _busy_processes: A counter of processes that mark themselves
+            as busy at the moment and thereby inhibit actions that
+            may be triggered by the programme being idle and waiting
+            for input, e.g. auto-shutdown.
     """
+
+    def run(self, config: boxhead_config.Config) -> None:
+        """Run the application.
+
+        Args:
+            config: The configuration.
+        """
+        signal.signal(signal.SIGINT, self.on_interrupt)
+        signal.signal(signal.SIGTERM, self.on_interrupt)
+
+        self._busy_processes: int = 0
+        self._terminate_signal: bool = False
+        self._shutdown_signal: bool = False
+
+        self.start_logging()
+
+        logger.debug('this is boxhead running with pid %s', os.getpid())
+
+        passthrough_events: list[str] = config.get_list_str('core',
+                                                            'events',
+                                                            'passthrough',
+                                                            default=[])
+
+        self._plugins: list[boxhead_plugin.Plugin] = []
+
+        self.load_plugins(config)
+
+        for plugin in self._plugins:
+            logger.debug('starting process %s', plugin.get_name())
+            plugin.start()
+
+        self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
+
+        self.emit('finished_loading')
+
+        self.all_idle()
+
+        if len(self._plugins) > 0:
+            while not self._terminate_signal:
+                try:
+                    event: boxhead_event.Event = self._queue_from_plugins.get(
+                        True, 0.1)
+                    logger.debug('recieved %s', event.name)
+                    self.process_event(event, passthrough_events)
+                except queue.Empty:
+                    pass
+                except ValueError:
+                    logger.error('queue from plugins closed')
+
+        logger.debug('exited main loop')
+
+        for plugin in self._plugins:
+            plugin.join()
+
+        logger.debug('all plugin processes stopped')
+
+        self.stop_logging()
+        self._logger.join()
+
+        self.shutdown(
+            config.get_int('core', 'system', 'shutdown_time', default=1),
+            config.get_bool('core', 'system', 'debug', default=False))
 
     def load_plugins(self, config: boxhead_config.Config) -> None:
         """Triggers a (re-)scan of the plugin directories.
@@ -459,67 +525,52 @@ class BoxHead:
             # just check if an `on_EVENT` function is defined
             getattr(self, 'on_' + event.name)(*event.values, **event.params)
 
+        if event.name in ('busy', 'idle'):
+            # those case are taken care of by `on_idle` and `on_busy` so
+            # return
+            return
+
         if event.name in passthrough:
             self.emit(event.name, *event.values, **event.params)
 
-    def run(self, config: boxhead_config.Config) -> None:
-        """Run the application.
+    def on_busy(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Triggered if a plugin gets busy, increases the counter.
 
         Args:
-            config: The configuration.
+            values: Values that are attached to the event (ignored).
+            params: Parameters attached to the event (ignored).
         """
-        signal.signal(signal.SIGINT, self.on_interrupt)
-        signal.signal(signal.SIGTERM, self.on_interrupt)
+        self._busy_processes += 1
 
-        self._terminate_signal = False
-        self._shutdown_signal = False
+    def on_idle(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Triggered if a plugin switches to idle.
 
-        self.start_logging()
+        Decreases the counter of busy processes and triggers a
+        reevaluation if the whole programme is idle.
 
-        logger.debug('this is boxhead running with pid %s', os.getpid())
+        Args:
+            values: Values that are attached to the event (ignored).
+            params: Parameters attached to the event (ignored).
+        """
 
-        passthrough_events: list[str] = config.get_list_str('core',
-                                                            'events',
-                                                            'passthrough',
-                                                            default=[])
+        if self._busy_processes == 0:
+            logger.error('more processes became idle than said were busy')
 
-        self._plugins: list[boxhead_plugin.Plugin] = []
+        self._busy_processes -= 1
 
-        self.load_plugins(config)
+        self.all_idle()
 
-        for plugin in self._plugins:
-            logger.debug('starting process %s', plugin.get_name())
-            plugin.start()
+    def all_idle(self) -> bool:
+        """True if this process and all of the plugins are idle."""
+        if self._busy_processes > 0:
+            return False
 
-        self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
+        self.emit('idle')
 
-        self.emit('finished_loading')
+        return True
 
-        if len(self._plugins) > 0:
-            while not self._terminate_signal:
-                try:
-                    event: boxhead_event.Event = self._queue_from_plugins.get(
-                        True, 0.1)
-                    logger.debug('recieved %s', event.name)
-                    self.process_event(event, passthrough_events)
-                except queue.Empty:
-                    pass
-                except ValueError:
-                    logger.error('queue from plugins closed')
-
-        logger.debug('exited main loop')
-
-        for plugin in self._plugins:
-            plugin.join()
-
-        logger.debug('all plugin processes stopped')
-
-        self.stop_logging()
-        self._logger.join()
-
-        self.shutdown(
-            config.get_int('core', 'system', 'shutdown_time', default=1),
-            config.get_bool('core', 'system', 'debug', default=False))
 
 
 def main() -> None:

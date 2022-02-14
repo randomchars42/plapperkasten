@@ -42,10 +42,6 @@ core:
 #    # the interval for polling MPD's status in seconds
 #    interval_poll: 5
 #
-#  inputrfidusb:
-#    # the unix event id
-#    device: '/dev/input/event7'
-#
 #  soundcontrol:
 #    # increase / decrease in steps of STEP % of 100 %
 #    volume_step: 5
@@ -65,8 +61,3 @@ core:
 #    pin_shutdown: 4
 #    # pin to listen to for shutdown signal
 #    pin_listen: 17
-#
-#  shutdowntimer:
-#    # request shutdown after X seconds of idle time
-#    # 5 minutes = 300 seconds
-#    idle_time: 300

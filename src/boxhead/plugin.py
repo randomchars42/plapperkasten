@@ -24,6 +24,7 @@ class Plugin(multiprocessing.Process):
         _from_plugin: Queue to send signals to the main process.
         _registered_events: A list of events the plugin wants to be
             registered for.
+        _busy: Indicator if the plugin has marked itself as busy.
     """
 
     def __init__(self, name: str, config: boxhead_config.Config,
@@ -54,6 +55,7 @@ class Plugin(multiprocessing.Process):
         self._to_plugin: multiprocessing.Queue = to_plugin
         self._from_plugin: multiprocessing.Queue = from_plugin
         self._registered_events: list[str] = []
+        self._busy: bool = False
 
         self.on_init(config)
         logger.debug('initialised %s', self.get_name())
@@ -123,6 +125,18 @@ class Plugin(multiprocessing.Process):
                 boxhead_event.Event(name, *values, **params))
         except queue.Full:
             logger.critical('queue from plugins full')
+
+    def send_busy(self) -> None:
+        """Signal the main process that the plugin is busy."""
+        if not self._busy:
+            self.send_to_main('busy')
+            self._busy = True
+
+    def send_idle(self) -> None:
+        """Signal the main process that the plugin is idle."""
+        if self._busy:
+            self.send_to_main('idle')
+            self._busy = False
 
     def register_for(self, event: str) -> None:
         """Register the plugin to be notified if an event is emitted.
