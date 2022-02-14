@@ -1,0 +1,7 @@
+---
+plugins:
+  autoshutdown:
+    # time with all processes idling until shutdown is commenced in seconds
+    # 5 min = 300 s
+    # 3 min = 180 s
+    idle_time: 300
