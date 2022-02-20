@@ -94,12 +94,12 @@ class EventMap(keymap.KeyMap):
             **params: Parameters to store.
         """
 
-        if event_name is None:
+        if event_name == '':
             self.remove_event(key)
         values = (event_name, *values)
         self.update(self.get_path_user_map(), key, *values, **params)
 
-    def remove_event(self, key) -> None:
+    def remove_event(self, key: str) -> None:
         """Remove event with key.
 
         Args:
