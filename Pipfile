@@ -8,6 +8,7 @@ pyyaml = "~=6.0"
 gpiodmonitor = "~=1.1.2"
 evdev = "~=1.4.0"
 boxhead = {editable = true, path = "."}
+python-mpd2 = "~=3.0.5"
 
 [dev-packages]
 docutils = "~=0.18.1"
