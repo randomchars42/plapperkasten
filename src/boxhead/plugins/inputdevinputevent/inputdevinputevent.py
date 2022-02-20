@@ -43,7 +43,7 @@ class Inputdevinputevent(plugin.Plugin):
                                           'layout',
                                           default='')
 
-    def on_run(self) -> None:
+    def on_before_run(self) -> None:
         """Initiate input devices.
 
         Cannot by done in `on_init` as those seem to get copied into the
@@ -77,9 +77,9 @@ class Inputdevinputevent(plugin.Plugin):
                             self._current_input[device.name] += self._keys[
                                 event.code]
 
-    def on_stop(self) -> None:
+    def on_after_run(self) -> None:
         """Close and free up devices."""
-        super().on_stop()
+        super().on_after_run()
         for dev in self._devices:
             dev.close()
         self._devices.clear()
