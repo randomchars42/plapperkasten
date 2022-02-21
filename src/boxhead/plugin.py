@@ -138,6 +138,14 @@ class Plugin(multiprocessing.Process):
             self.send_to_main('idle')
             self._busy = False
 
+    def is_busy(self) -> bool:
+        """Returns if the plugin is currently busy.
+
+        Returns:
+            Is the plugin currently busy?
+        """
+        return self._busy
+
     def register_for(self, event: str) -> None:
         """Register the plugin to be notified if an event is emitted.
 
