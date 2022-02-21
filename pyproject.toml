@@ -64,4 +64,5 @@ where = ["src"]
 # update the path locally to match your settings, i.e. change the
 # python version and the path to the venv as it currently depends on
 # `export PIPENV_VENV_IN_PROJECT=1` being set
-mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/:$MYPY_CONFIG_FILE_DIR/src'
+mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/:$MYPY_CONFIG_FILE_DIR/src/:$MYPY_CONFIG_FILE_DIR/src/boxhead/plugins/'
+show_error_codes = true
