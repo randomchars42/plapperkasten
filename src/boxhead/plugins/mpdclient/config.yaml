@@ -1,0 +1,15 @@
+---
+plugins:
+  mpdclient:
+    # the path to the keymap containing all status information
+    # relative to the user config directory
+    name_statusmap: 'mpdclient_status.map'
+    # the interval for polling MPD's status in seconds
+    interval_poll: 5
+    # the minimum interval before persisting the current status to the
+    # statusmap in seconds
+    save_min_interval: 5
+    # the host where mpd resides
+    host: 'localhost'
+    # the port where mpd listens
+    port: 6600
