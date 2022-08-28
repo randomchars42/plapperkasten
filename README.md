@@ -1,5 +1,4 @@
-# boxhead
-
+# plapperkasten
 
 ## Coding
 
@@ -23,14 +22,14 @@ All path representations should be `pathlib.Path`-objects instead of strings.
 
 ### Logging
 
-Logging uses a wrapper (`boxhead.boxheadlogging`) around the `logging` module to cover logging from multiple processes.
+Logging uses a wrapper (`plapperkasten.plapperkastenlogging`) around the `logging` module to cover logging from multiple processes.
 
 Import a logger using:
 
 ```python
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 # your code here
 ```
@@ -56,9 +55,9 @@ logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
 ### Example setup using pipenv
 
 ```sh
-git clone git@github.com:randomchars42/boxhead.git
+git clone git@github.com:randomchars42/plapperkasten.git
 
-cd boxhead
+cd plapperkasten
 
 # consider adding this to your .bashrc / equivalent for your shell:
 # `export PIPENV_VENV_IN_PROJECT=1`
@@ -75,5 +74,4 @@ pipenv install --dev
 
 # activate venv
 pipenv shell
-
 ```

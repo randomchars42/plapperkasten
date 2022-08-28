@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
-"""An example plugin for BoxHead.
+"""An example plugin for Plapperkasten.
 
-It has to be a descendant of `boxhead.plugin.Plugin` and thus becomes a
+It has to be a descendant of `plapperkasten.plugin.Plugin` and thus becomes a
 descendant of `multiprocessing.Process`.
 """
 
-from boxhead import config as boxhead_config
-from boxhead import plugin
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import plugin
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class Example(plugin.Plugin):
     """The main class of the plugin.
 
-    Needs to inherit from `boxhead.plugin.Plugin` and thus becomes a
+    Needs to inherit from `plapperkasten.plugin.Plugin` and thus becomes a
     descendant of `multiprocessing.Process` which will be started by
     the main process some time after `on_init` is called.
     """
 
-    def on_init(self, config: boxhead_config.Config) -> None:
+    def on_init(self, config: plapperkasten_config.Config) -> None:
         """This gets called by the constructor.
 
         Use this function to retrieve and store values from the

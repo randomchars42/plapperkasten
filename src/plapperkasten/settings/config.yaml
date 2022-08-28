@@ -2,7 +2,7 @@
 core:
   paths:
     # the user config directory
-    user_directory: '~/.config/boxhead'
+    user_directory: '~/.config/plapperkasten'
     # where to expect the plugins
     # relative to the user config directory
     plugins: 'plugins'

@@ -1,15 +1,14 @@
 [project]
-name = 'boxhead'
-version = '0.1.0'
+name = 'plapperkasten'
+version = '0.2.0'
 description = ''
 readme = 'README.md'
 requires-python = '>=3.9'
-license = 'The Unlicense'
 authors = [
-{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
+{name = 'Eike Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
 ]
 maintainers = [
-{name = 'Eike Christian Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
+{name = 'Eike Kühn', email = 'eike.kuehn@pixelwoelkchen.de'},
 ]
 classifiers = [
     'License :: OSI Approved :: The Unlicense (Unlicense)',
@@ -32,20 +31,20 @@ inputgpiod = [
 ]
 
 [project.urls]
-homepage = 'https://github.com/randomchars42/boxhead'
-documentation = 'https://github.com/randomchars42/boxhead'
-source = 'https://github.com/randomchars42/boxhead'
-tracker = 'https://github.com/randomchars42/boxhead/issues'
+homepage = 'https://github.com/randomchars42/plapperkasten'
+documentation = 'https://github.com/randomchars42/plapperkasten'
+source = 'https://github.com/randomchars42/plapperkasten'
+tracker = 'https://github.com/randomchars42/plapperkasten/issues'
 
 [project.scripts]
-boxhead = 'boxhead.boxhead:main'
+plapperkasten = 'plapperkasten.plapperkasten:main'
 
 [build-system]
 requires = [
     'build~=0.7.0',
     'docutils~=0.18.1',
     'wheel~=0.37.1',
-    'setuptools~=60.6.0',
+    'setuptools~=61.0.0',
     'twine~=3.8.0',
     'types-setuptools~=57.4.8',
     'types-pyyaml~=6.0.4',
@@ -54,9 +53,13 @@ requires = [
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+include-package-data = true
+
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ['src', 'src/plapperkasten/plugins']
+
+[tool.setuptools.package-data]
+"*" = ['*.md', '*.yaml', '*.map', '*.wav', 'attribution']
 
 [tool.mypy]
 # add .venv to the mypy path to detect imported packages installed by
@@ -64,5 +67,5 @@ where = ["src"]
 # update the path locally to match your settings, i.e. change the
 # python version and the path to the venv as it currently depends on
 # `export PIPENV_VENV_IN_PROJECT=1` being set
-mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/:$MYPY_CONFIG_FILE_DIR/src/:$MYPY_CONFIG_FILE_DIR/src/boxhead/plugins/'
+mypy_path = '$MYPY_CONFIG_FILE_DIR/.venv/lib/python3.9/site-packages/:$MYPY_CONFIG_FILE_DIR/src/:$MYPY_CONFIG_FILE_DIR/src/plapperkasten/plugins/'
 show_error_codes = true

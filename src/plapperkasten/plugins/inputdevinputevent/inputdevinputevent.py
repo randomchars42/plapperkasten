@@ -6,11 +6,11 @@ import selectors
 
 import evdev
 
-from boxhead import config as boxhead_config
-from boxhead import plugin
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import plugin
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class Inputdevinputevent(plugin.Plugin):
@@ -27,7 +27,7 @@ class Inputdevinputevent(plugin.Plugin):
             pressed.
     """
 
-    def on_init(self, config: boxhead_config.Config) -> None:
+    def on_init(self, config: plapperkasten_config.Config) -> None:
         """Retrieve the names of the devices to listen to.
 
         Args:

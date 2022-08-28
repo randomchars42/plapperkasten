@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for boxhead.config."""
+"""Tests for plapperkasten.config."""
 
 import unittest
 
-from boxhead import config as boxhead_config
+from plapperkasten import config as plapperkasten_config
 
 
 class TestConfig(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestConfig(unittest.TestCase):
 
     def setUp(self):
         # empty config
-        self.config: boxhead_config.Config = boxhead_config.Config()
+        self.config: plapperkasten_config.Config = plapperkasten_config.Config()
 
     def test_get(self):
         self.assertRaises(ValueError,

@@ -6,12 +6,12 @@ import signal
 
 import gpiodmonitor
 
-from boxhead import config as boxhead_config
-from boxhead import event as boxhead_event
-from boxhead import plugin
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import event as plapperkasten_event
+from plapperkasten import plugin
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class Inputgpiod(plugin.Plugin):
@@ -21,7 +21,7 @@ class Inputgpiod(plugin.Plugin):
         _monitor: Instance of `gpiodmonitor.GPIODMonitor`
     """
 
-    def on_init(self, config: boxhead_config.Config) -> None:
+    def on_init(self, config: plapperkasten_config.Config) -> None:
         """Setup pins.
 
         Args:
@@ -85,7 +85,7 @@ class Inputgpiod(plugin.Plugin):
         with self._monitor.open_chip():
             while not self._terminate_signal:
                 try:
-                    event: boxhead_event.Event = self._to_plugin.get(
+                    event: plapperkasten_event.Event = self._to_plugin.get(
                         True, self._monitor.check_interval / 1000)
                     if hasattr(self, 'on_' + event.name):
                         getattr(self, 'on_' + event.name)(*event.values,

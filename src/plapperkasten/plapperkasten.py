@@ -1,5 +1,5 @@
 #!/usr/bin/env python3.9
-"""BoxHead."""
+"""Plapperkasten."""
 
 import argparse
 import importlib
@@ -14,16 +14,16 @@ import sys
 
 from types import ModuleType
 
-from boxhead import config as boxhead_config
-from boxhead import event as boxhead_event
-from boxhead import eventmap
-from boxhead import plugin as boxhead_plugin
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import event as plapperkasten_event
+from plapperkasten import eventmap
+from plapperkasten import plugin as plapperkasten_plugin
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
-class BoxHead:
+class Plapperkasten:
     """Main unit for controlling the box.
 
     Loads the config:
@@ -53,7 +53,7 @@ class BoxHead:
             for input, e.g. auto-shutdown.
     """
 
-    def run(self, config: boxhead_config.Config) -> None:
+    def run(self, config: plapperkasten_config.Config) -> None:
         """Run the application.
 
         Args:
@@ -68,14 +68,14 @@ class BoxHead:
 
         self.start_logging()
 
-        logger.debug('this is boxhead running with pid %s', os.getpid())
+        logger.debug('this is plapperkasten running with pid %s', os.getpid())
 
         passthrough_events: list[str] = config.get_list_str('core',
                                                             'events',
                                                             'passthrough',
                                                             default=[])
 
-        self._plugins: list[boxhead_plugin.Plugin] = []
+        self._plugins: list[plapperkasten_plugin.Plugin] = []
 
         self.load_plugins(config)
 
@@ -92,7 +92,7 @@ class BoxHead:
         if len(self._plugins) > 0:
             while not self._terminate_signal:
                 try:
-                    event: boxhead_event.Event = self._queue_from_plugins.get(
+                    event: plapperkasten_event.Event = self._queue_from_plugins.get(
                         True, 0.1)
                     logger.debug('recieved %s', event.name)
                     self.process_event(event, passthrough_events)
@@ -115,7 +115,7 @@ class BoxHead:
             config.get_int('core', 'system', 'shutdown_time', default=1),
             config.get_bool('core', 'system', 'debug', default=False))
 
-    def load_plugins(self, config: boxhead_config.Config) -> None:
+    def load_plugins(self, config: plapperkasten_config.Config) -> None:
         """Triggers a (re-)scan of the plugin directories.
 
         Tries to load all packages in the plugin directories as plugin.
@@ -123,7 +123,7 @@ class BoxHead:
         There are two directories which may hold plugins:
         * the core plugins reside under `./plugins`
         * the user may provide plugins in the user directory (default:
-          `/~/.config/boxhead/plugins`)
+          `/~/.config/plapperkasten/plugins`)
 
         Loads the class `Greatplugin` (first letter uppercase) from
         file `/PATH/TO/PLUGINS/greatplugin/greatplugin.py`and stores
@@ -149,14 +149,14 @@ class BoxHead:
                 config.get_str('core',
                                'paths',
                                'user_directory',
-                               default='~/.config/boxhead'),
+                               default='~/.config/plapperkasten'),
                 config.get_str('core', 'paths', 'plugins',
                                default='plugins')).expanduser().resolve(),
             config.get_list_str('core', 'plugins', 'blacklist', default=[]),
             config)
 
     def _load_plugins(self, path: pathlib.Path, blacklist: list[str],
-                      config: boxhead_config.Config) -> None:
+                      config: plapperkasten_config.Config) -> None:
         """Gathers all packages located under path as plugins.
 
         Expect the main module of the plugin package to be named
@@ -167,7 +167,7 @@ class BoxHead:
         * main module in: myplugin.py (PATH/TO/myplugin/myplugin.py)
 
         Expect the class of the plugin to be a descendant of
-        `boxhead.plugin.Plugin` and to be named like the package but
+        `plapperkasten.plugin.Plugin` and to be named like the package but
         with the first letter uppercase, e.g.:
 
         * classname: Myplugin
@@ -210,7 +210,7 @@ class BoxHead:
                 logger.error('could not load plugin %s', name)
                 continue
             # expect the class of the plugin to be a descendant of
-            # boxhead.plugin.Plugin and to be named like the package but with
+            # plapperkasten.plugin.Plugin and to be named like the package but with
             # the first letter uppercase, i.e.,
             # classname: Myplugin
             classname: str = name[0].upper() + name[1:]
@@ -220,7 +220,7 @@ class BoxHead:
                 config.load_from_path(path / name / 'config.yaml')
 
                 # load the plugin itself
-                plugin: boxhead_plugin.Plugin = getattr(module, classname)(
+                plugin: plapperkasten_plugin.Plugin = getattr(module, classname)(
                     classname, config, self.get_queue_to_plugin(name),
                     self.get_queue_from_plugins())
 
@@ -397,7 +397,7 @@ class BoxHead:
             try:
                 logger.debug('emitting %s for %s', event, subscriber)
                 self.get_queue_to_plugin(subscriber, False).put_nowait(
-                    boxhead_event.Event(event, *values, **params))
+                    plapperkasten_event.Event(event, *values, **params))
             except queue.Full:
                 logger.critical('queue to plugin %s full', subscriber)
             except KeyError:
@@ -460,10 +460,10 @@ class BoxHead:
 
         This creates a process at the recieving end of the
         `logging.handlers.QueueHandler` that is configured by
-        `boxhead_logging`.
+        `plapperkasten_logging`.
         """
 
-        self._logger_queue: multiprocessing.Queue = boxheadlogging.get_queue()
+        self._logger_queue: multiprocessing.Queue = plapperkastenlogging.get_queue()
 
         # Do not use a `threading.Thread` here as it is suggested.
         # This would lead to random occurences of blocked threads on interrupt.
@@ -491,7 +491,7 @@ class BoxHead:
 
         signal.signal(signal.SIGINT, lambda signal_num, frame: ...)
         signal.signal(signal.SIGTERM, lambda signal_num, frame: ...)
-        thread_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(
+        thread_logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(
             'logging_thread')
         while True:
             record: logging.LogRecord = record_queue.get(True)
@@ -500,7 +500,7 @@ class BoxHead:
                 break
             thread_logger.handle(record)
 
-    def process_event(self, event: boxhead_event.Event,
+    def process_event(self, event: plapperkasten_event.Event,
                       passthrough: list[str]) -> None:
         """Process incoming events.
 
@@ -576,7 +576,7 @@ class BoxHead:
 def main() -> None:
     """Reads cli arguments and runs the main loop."""
 
-    config = boxhead_config.Config()
+    config = plapperkasten_config.Config()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -607,7 +607,7 @@ def main() -> None:
     args = parser.parse_args()
 
     levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
-    root_logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger()
+    root_logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger()
     root_logger.setLevel(levels[args.verbosity])
     if levels[args.verbosity] == 'DEBUG':
         config.set_bool('core', 'system', 'debug', value=True, target='input')
@@ -626,8 +626,8 @@ def main() -> None:
     if not args.user_dir == '':
         config.set_str('core', 'paths', 'user_directory', value=args.user_dir)
 
-    boxhead: BoxHead = BoxHead()
-    boxhead.run(config)
+    plapperkasten: Plapperkasten = Plapperkasten()
+    plapperkasten.run(config)
 
 
 if __name__ == '__main__':

@@ -5,11 +5,11 @@ import multiprocessing
 import queue
 import signal
 
-from boxhead import config as boxhead_config
-from boxhead import event as boxhead_event
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import event as plapperkasten_event
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class Plugin(multiprocessing.Process):
@@ -27,7 +27,7 @@ class Plugin(multiprocessing.Process):
         _busy: Indicator if the plugin has marked itself as busy.
     """
 
-    def __init__(self, name: str, config: boxhead_config.Config,
+    def __init__(self, name: str, config: plapperkasten_config.Config,
                  to_plugin: multiprocessing.Queue,
                  from_plugin: multiprocessing.Queue) -> None:
         """Initialises the plugin and then calls `on_init()`.
@@ -64,12 +64,12 @@ class Plugin(multiprocessing.Process):
         """Returns the name set by `__init__()`.
 
         Returns:
-            A string with the name set by BoxHead.
+            A string with the name set by Plapperkasten.
         """
 
         return self._name
 
-    def on_init(self, config: boxhead_config.Config) -> None:
+    def on_init(self, config: plapperkasten_config.Config) -> None:
         # pylint: disable=unused-argument
         """Initialises class members.
 
@@ -122,7 +122,7 @@ class Plugin(multiprocessing.Process):
         """
         try:
             self._from_plugin.put_nowait(
-                boxhead_event.Event(name, *values, **params))
+                plapperkasten_event.Event(name, *values, **params))
         except queue.Full:
             logger.critical('queue from plugins full')
 
@@ -183,7 +183,7 @@ class Plugin(multiprocessing.Process):
         while not self._terminate_signal:
             self.on_tick()
             try:
-                event: boxhead_event.Event = self._to_plugin.get(
+                event: plapperkasten_event.Event = self._to_plugin.get(
                     True, self._tick_interval)
                 if hasattr(self, 'on_' + event.name):
                     getattr(self, 'on_' + event.name)(*event.values,

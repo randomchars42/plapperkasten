@@ -7,14 +7,14 @@ import pkg_resources
 
 from typing import Any, TypeVar, Callable
 
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
 T = TypeVar('T')
 U = TypeVar('U')
 V = TypeVar('V')
 W = TypeVar('W')
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class Config():
@@ -23,7 +23,7 @@ class Config():
     Configuration can be set in several different ways:
     * APPLICATION_PATH/settings/config.yml (application's defaults)
     * each plugin's config.yaml
-    * user's config file (default: ~/.config/boxhead/config.yaml)
+    * user's config file (default: ~/.config/plapperkasten/config.yaml)
     * script params
     Where the latter configurations override the former configurations.
 
@@ -34,7 +34,7 @@ class Config():
             specified the programme / plugin.
         _config_user: Dictionary holding the configuration as specified
             by the user in the user's config file (default:
-            ~/.config/boxhead/config.yaml)
+            ~/.config/plapperkasten/config.yaml)
         _config_input: Dictionary holding the configuration specified
             via the CLI.
         _config_active: Dictionary holding the consolidated version of
@@ -66,7 +66,8 @@ class Config():
             self.get_str('core', 'paths', 'user_directory', default=''),
             'config.yaml')
         path = path.expanduser().resolve()
-        self.load_from_path(path, 'user')
+        if path.exists():
+            self.load_from_path(path, 'user')
 
     def load_from_path(self,
                        path: pathlib.Path,

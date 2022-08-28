@@ -4,12 +4,12 @@
 import pathlib
 import pkg_resources
 
-from boxhead import config as boxhead_config
-from boxhead import event
-from boxhead import keymap
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import event
+from plapperkasten import keymap
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class EventMap(keymap.KeyMap):
@@ -28,7 +28,7 @@ class EventMap(keymap.KeyMap):
         _path_user_map: The path to the map provided by the user.
     """
 
-    def __init__(self, config: boxhead_config.Config) -> None:
+    def __init__(self, config: plapperkasten_config.Config) -> None:
         """Initialise variables and load map from file(s).
 
         Args:
@@ -39,7 +39,7 @@ class EventMap(keymap.KeyMap):
             config.get_str('core',
                            'paths',
                            'user_directory',
-                           default='~/.config/boxhead/'),
+                           default='~/.config/plapperkasten/'),
             config.get_str('core', 'paths', 'eventmap', default='events.map'))
         self._path_user_map = self._path_user_map.expanduser().resolve()
         self.reset()

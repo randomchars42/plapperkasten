@@ -23,7 +23,7 @@ logging_config.dictConfig({
         },
         #'file': {
         #    'class': 'logging.handlers.RotatingFileHandler',
-        #    'filename': 'boxhead.log',
+        #    'filename': 'plapperkasten.log',
         #    'mode': 'a',
         #    'maxBytes': 10000000,
         #    'backupCount': 5,
@@ -31,7 +31,7 @@ logging_config.dictConfig({
         #},
         #'errors': {
         #    'class': 'logging.handlers.RotatingFileHandler',
-        #    'filename': 'boxhead-errors.log',
+        #    'filename': 'plapperkasten-errors.log',
         #    'mode': 'a',
         #    'maxBytes': 10000000,
         #    'backupCount': 5,
@@ -56,7 +56,7 @@ logger_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
 root: log.Logger = log.getLogger()
 root.addHandler(handlers.QueueHandler(logger_queue))
 
-class BoxHeadLogger(log.Logger):
+class PlapperkastenLogger(log.Logger):
     """Wrapper around logging.Logger.
 
     Needed so that other modules do not need to import `logging` for
@@ -76,7 +76,7 @@ class BoxHeadLogger(log.Logger):
                               {})
         self.__dict__ = logger.__dict__
 
-def get_logger(name: str = '') -> BoxHeadLogger:
+def get_logger(name: str = '') -> PlapperkastenLogger:
     """Wrapper aroung logging.getLogger().
 
     Args:
@@ -84,8 +84,8 @@ def get_logger(name: str = '') -> BoxHeadLogger:
     """
 
     if name == '':
-        return BoxHeadLogger(log.getLogger())
-    return BoxHeadLogger(log.getLogger(name))
+        return PlapperkastenLogger(log.getLogger())
+    return PlapperkastenLogger(log.getLogger(name))
 
 def get_queue() -> multiprocessing.Queue:
     """Return the queue used in the multiprocessing setup.

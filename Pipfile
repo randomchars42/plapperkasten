@@ -7,13 +7,13 @@ name = "pypi"
 pyyaml = "~=6.0"
 gpiodmonitor = "~=1.1.2"
 evdev = "~=1.4.0"
-boxhead = {editable = true, path = "."}
+plapperkasten = {editable = true, path = "."}
 python-mpd2 = "~=3.0.5"
 
 [dev-packages]
 docutils = "~=0.18.1"
 wheel = "~=0.37.1"
-setuptools = "~=60.6.0"
+setuptools = "~=61.0.0"
 types-setuptools = "~=57.4.8"
 types-pyyaml = "~=6.0.4"
 build = "~=0.7.0"

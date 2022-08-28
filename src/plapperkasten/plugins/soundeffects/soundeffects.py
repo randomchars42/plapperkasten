@@ -6,11 +6,11 @@ import pathlib
 import pkg_resources
 import subprocess
 
-from boxhead import config as boxhead_config
-from boxhead import plugin
-from boxhead.boxheadlogging import boxheadlogging
+from plapperkasten import config as plapperkasten_config
+from plapperkasten import plugin
+from plapperkasten.plapperkastenlogging import plapperkastenlogging
 
-logger: boxheadlogging.BoxHeadLogger = boxheadlogging.get_logger(__name__)
+logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
 
 
 class Soundeffects(plugin.Plugin):
@@ -22,7 +22,7 @@ class Soundeffects(plugin.Plugin):
             to names of sound files.
     """
 
-    def on_init(self, config: boxhead_config.Config) -> None:
+    def on_init(self, config: plapperkasten_config.Config) -> None:
         """Register for events.
 
         Args:
