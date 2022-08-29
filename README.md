@@ -34,7 +34,11 @@ logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logg
 # your code here
 ```
 
-## Setup
+## Setup as an isolated app integrated into the system (e.g. on a remote box)
+
+Please see <https://github.com/randomchars42/plapperkasten-setup> for detailed instructions and an easy installer.
+
+## Setup for development
 
 ### Requirements
 
