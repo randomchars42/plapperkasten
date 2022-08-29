@@ -16,7 +16,7 @@ class EventMap(keymap.KeyMap):
     """Representation of the two event map files.
 
     Events are mapped in two different files:
-    * APPLICATION_PATH/settings/events.map (application's defaults)
+    * APPLICATION_PATH/settings/events.map (application's default)
     * USER_DIR/events.map
     Whereas events from the latter file override events from the
     former.
