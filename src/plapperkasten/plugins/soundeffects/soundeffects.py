@@ -35,12 +35,12 @@ class Soundeffects(plugin.Plugin):
         self.register_for('feedback')
         self._path_sounds = pathlib.Path(
             config.get_str('plugins',
-                           'soundeffect',
+                           'soundeffects',
                            'path',
                            default=pkg_resources.resource_filename(
                                __name__, 'sounds')))
         self._sounds: dict[str, str] = config.get_dict_str_str('plugins',
-                                                               'soundeffect',
+                                                               'soundeffects',
                                                                'sounds',
                                                                default={})
 

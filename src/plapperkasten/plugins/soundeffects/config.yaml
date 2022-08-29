@@ -1,5 +1,5 @@
 plugins:
-  soundeffect:
+  soundeffects:
     # path to sounds
     # must be an absolute path
     # path: ''
