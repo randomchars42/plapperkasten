@@ -504,7 +504,7 @@ class Plapperkasten:
                       passthrough: list[str]) -> None:
         """Process incoming events.
 
-        Events named 'raw' will be looked the event map. All other
+        Events named 'raw' will be looked up in the event map. All other
         events will be emitted.
 
         Args:
@@ -607,8 +607,13 @@ def main() -> None:
     args = parser.parse_args()
 
     levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
+    # there are only levels 0 to 3
+    # everything else will cause the index to be out of bounds
+    verbosity_level: int = min(args.verbosity, 3)
+    if config.get_bool('core', 'system', 'debug', default=False):
+        verbosity_level = 3
     root_logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger()
-    root_logger.setLevel(levels[args.verbosity])
+    root_logger.setLevel(levels[verbosity_level])
     if levels[args.verbosity] == 'DEBUG':
         config.set_bool('core', 'system', 'debug', value=True, target='input')
 
