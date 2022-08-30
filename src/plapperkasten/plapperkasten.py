@@ -207,7 +207,7 @@ class Plapperkasten:
             try:
                 module: ModuleType = importlib.import_module(f'{name}.{name}')
             except ModuleNotFoundError:
-                logger.error('could not load plugin %s', name)
+                logger.error('could not import plugin %s', name)
                 continue
             # expect the class of the plugin to be a descendant of
             # plapperkasten.plugin.Plugin and to be named like the package but with
@@ -232,7 +232,7 @@ class Plapperkasten:
                 # `terminate` is mandatory
                 self.register('terminate', name)
             except AttributeError:
-                logger.error('failed to load module "%s" - "%s" missing? ',
+                logger.error('failed to load module "%s" - class "%s" missing?',
                              name, classname)
 
         logger.info('plugins loaded from %s', path)
