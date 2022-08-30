@@ -4,7 +4,7 @@
 import queue
 import signal
 
-import gpiodmonitor
+from gpiodmonitor import gpiodmonitor
 
 from plapperkasten import config as plapperkasten_config
 from plapperkasten import event as plapperkasten_event
@@ -25,26 +25,26 @@ class Inputgpiod(plugin.Plugin):
         """Setup pins.
 
         Args:
-            config: The cponfiguration.
+            config: The configuration.
         """
 
         self._monitor: gpiodmonitor.GPIODMonitor = gpiodmonitor.GPIODMonitor(
-            chip=config.get_int('plugins', 'gpiodmonitor', 'chip', default=0),
+            chip_number=config.get_int('plugins', 'inputgpiod', 'chip', default=0),
             active_pulses=True)
 
         long_press_duration: int = config.get_int('plugins',
-                                                  'gpiodmonitor',
+                                                  'inputgpiod',
                                                   'long_press_duration',
                                                   default=1)
 
         for pin in config.get_list_int('plugins',
-                                       'gpiodmonitor',
+                                       'inputgpiod',
                                        'press_short',
                                        default=[]):
             self._monitor.register(pin, on_active=self.send_short_press_signal)
 
         for pin in config.get_list_int('plugins',
-                                       'gpiodmonitor',
+                                       'inputgpiod',
                                        'press_long',
                                        default=[]):
             self._monitor.register_long_active(
