@@ -1,6 +1,6 @@
 [project]
 name = 'plapperkasten'
-version = '0.2.0'
+version = '0.2.1'
 description = ''
 readme = 'README.md'
 requires-python = '>=3.9'
@@ -56,7 +56,8 @@ build-backend = 'setuptools.build_meta'
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ['src', 'src/plapperkasten/plugins']
+where = ['src']
+#where = ['src', 'src/plapperkasten/plugins']
 
 [tool.setuptools.package-data]
 "*" = ['*.md', '*.yaml', '*.map', '*.wav', 'attribution']
