@@ -82,8 +82,11 @@ class Inputgpiod(plugin.Plugin):
         signal.signal(signal.SIGINT, self.on_interrupt)
         signal.signal(signal.SIGTERM, self.on_interrupt)
 
+        self.on_before_run()
+
         with self._monitor.open_chip():
             while not self._terminate_signal:
+                self._monitor.tick()
                 try:
                     event: plapperkasten_event.Event = self._to_plugin.get(
                         True, self._monitor.check_interval / 1000)
@@ -93,10 +96,9 @@ class Inputgpiod(plugin.Plugin):
                     else:
                         logger.error('no method for event %s defined by %s',
                                      event.name, self.get_name())
-
-                    self._monitor.tick()
                 except queue.Empty:
                     pass
                 except ValueError:
                     logger.error('%s holds a closed queue', self.get_name())
+        self.on_after_run()
         logger.debug('%s exited main loop', self.get_name())
