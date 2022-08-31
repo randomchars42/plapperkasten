@@ -78,7 +78,7 @@ class Mpdclient(plugin.Plugin):
     def on_before_run(self) -> None:
         """Instantiate the MPD client.
 
-        Do not this in `on_init` as then the subprocess is not yet
+        Do not do this in `on_init` as then the subprocess is not yet
         running and the object has to be copied into the process and
         havoc ensues in tidying up.
         """
@@ -102,7 +102,6 @@ class Mpdclient(plugin.Plugin):
         if self._connected:
             try:
                 self.apply_status(status)
-                print("1" + str(self.is_current_playlist(status.key)))
             except ConnectionError:
                 self.on_connection_error()
 
@@ -122,10 +121,8 @@ class Mpdclient(plugin.Plugin):
         `on_EVENT` functions.
         """
 
-        # TODO
         if self._connected:
             try:
-                print(self._mpdclient.status())
                 self.check_mpd(save=True)
             except ConnectionError:
                 self.on_connection_error()
@@ -135,6 +132,7 @@ class Mpdclient(plugin.Plugin):
         super().on_after_run()
         if self._connected:
             try:
+                self._mpdclient.stop()
                 self._mpdclient.close()
                 self._mpdclient.disconnect()
             except ConnectionError:
