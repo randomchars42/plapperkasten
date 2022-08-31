@@ -505,15 +505,21 @@ class Plapperkasten:
         """Process incoming events.
 
         Events named 'raw' will be looked up in the event map. All other
-        events will be emitted.
+        events will be emitted if allowd by config.events.passthrough.
 
         Args:
             event: The event to process.
             passthrough: List of events, that  wil be re-emitted if
                 they are recieved.
         """
+        # events will be processed and reemitted
+        # "raw"-events will be looked up on the event map and a new
+        # event will be created
+        new = False
+
         if event.name == 'raw':
             event = self._eventmap.get_event(event.values[0])
+            new = True
 
         if event.name == '':
             # empty event
@@ -530,7 +536,7 @@ class Plapperkasten:
             # return
             return
 
-        if event.name in passthrough:
+        if new or not event.name in passthrough:
             self.emit(event.name, *event.values, **event.params)
 
     def on_busy(self, *values: str, **params: str) -> None:
