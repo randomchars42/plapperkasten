@@ -515,7 +515,7 @@ class Plapperkasten:
         # events will be processed and reemitted
         # "raw"-events will be looked up on the event map and a new
         # event will be created
-        new = False
+        new: bool = False
 
         if event.name == 'raw':
             event = self._eventmap.get_event(event.values[0])
@@ -548,6 +548,9 @@ class Plapperkasten:
             params: Parameters attached to the event (ignored).
         """
         self._busy_processes += 1
+
+        if self._busy_processes == 1:
+            self.emit('busy')
 
     def on_idle(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
