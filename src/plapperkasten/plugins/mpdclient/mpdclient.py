@@ -93,18 +93,6 @@ class Mpdclient(plugin.Plugin):
         except ConnectionError:
             logger.error('could not connect to MPD')
 
-        # TODO don't load status and play media on startup
-        status: statusmap.Status = statusmap.Status('FINNEAS.m3u', '2',
-                                                    '30.000')
-        #status: statusmap.Status = statusmap.Status('Music/Seeed/Live - CD 1',
-        #                                            '2', '30.000')
-
-        if self._connected:
-            try:
-                self.apply_status(status)
-            except ConnectionError:
-                self.on_connection_error()
-
     def on_connection_error(self) -> None:
         """Log event and mark as not connected."""
         self._connected = False
@@ -159,6 +147,10 @@ class Mpdclient(plugin.Plugin):
 
         # create a playlist from the resource and play it
         status: statusmap.Status = self._statusmap.get_status(params['key'])
+        if status.key == '':
+            # empty status means that there's no entry with params['key'] as
+            # key in the statusmap
+            status.key = params['key']
         self.apply_status(status)
 
         try:
@@ -172,11 +164,15 @@ class Mpdclient(plugin.Plugin):
 
         # mark as active so that `on_play()`, `on_toggle()`, `on_stop()`,
         # `on_next()` and `on_prev()` react when called
-        if self.check_mpd(save=True):
-            self._active = True
-            # since music is playing inhibit auto shutdown etc. by claiming to
-            # be busy
-            self.send_busy()
+        self._active = True
+        # since music is playing inhibit auto shutdown etc. by claiming to
+        # be busy
+        self.send_busy()
+
+        if not self.check_mpd(save=True):
+            self._active = False
+            self.send_idle()
+
 
     def apply_status(self, status: statusmap.Status) -> None:
         """Apply all parameters to MPD.
@@ -210,6 +206,7 @@ class Mpdclient(plugin.Plugin):
         except ConnectionError:
             self.on_connection_error()
             return
+        self._status = status
 
     def query_status(self) -> statusmap.Status:
         """Queries the current status from MPD.
@@ -310,8 +307,14 @@ class Mpdclient(plugin.Plugin):
             True if MPD is connected and in the expected playlist.
         """
 
+        logger.debug('start checking mpd')
+        logger.debug('last check: ' + str(self._last_check))
+        logger.debug('now: ' + str(time.time()))
+
         if not force and time.time() < self._last_check + 0.5:
             # the last check was less than 500 ms ago
+            logger.debug('no need for further checking')
+            logger.debug(f'returning {self._last_check_result}')
             return self._last_check_result
 
         self._last_check_result = False
@@ -321,15 +324,18 @@ class Mpdclient(plugin.Plugin):
             # button (`on_next`, ...); this might hapen happen even if mpd is
             # not active in this case another plugin playing something might
             # be active
+            logger.debug('not active')
             return False
 
         if not self._connected:
             # this function will only be called if we think there's a
             # connection
+            logger.debug('not connected')
             return False
 
         if not self.is_current_playlist(self._status.key):
             # someone must have changed the playlist
+            logger.debug('not current playlist')
             return False
 
         # query the current status (position in playlist, elapsed seconds
@@ -339,6 +345,7 @@ class Mpdclient(plugin.Plugin):
 
         if status.state == 'n/a':
             # the query failed at one point
+            logger.debug('query failed')
             return False
 
         # the status returned by `query_status()` misses the key (= playlist
@@ -347,18 +354,21 @@ class Mpdclient(plugin.Plugin):
 
         self._status = status
         self._last_check_result = True
+        self._last_check = int(time.time())
 
         if save and (force or
                      time.time() > self._last_save + self._save_min_interval):
             # save the status to file so the user may resume in the event of an
             # unexpected interruption, e.g., an empty battery
+            logger.debug('saving status')
             self._statusmap.update_status(self._status)
 
-        if self._status.state != 'play':
+        if self._status.state == 'play':
             self.send_busy()
         else:
             self.send_idle()
 
+        logger.debug('finished checking mpd')
         return self._last_check_result
 
     def on_play(self, *values: str, **params: str) -> None:
