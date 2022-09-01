@@ -96,11 +96,12 @@ class StatusMap(keymap.KeyMap):
 
         try:
             item: keymap.KeyMapItem = self.get(key)
-            return Status(item.values[0], item.values[1], item.values[2])
+            return Status(key, item.values[0], item.values[1])
         except KeyError as e:
             logger.error('no event for key: "%s"', key)
             raise KeyError from e
         except IndexError:
+            logger.error('index error')
             return Status()
 
     def update_status(self, status: Status) -> None:
