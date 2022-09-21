@@ -52,7 +52,7 @@ class Volumealsa(plugin.Plugin):
         havoc ensues in tidying up.
         """
         self.set_max_volume(self._volume_max)
-        logger.debug('current volume: %', str(self.query_volume()))
+        logger.debug('current volume: %s', str(self.query_volume()))
 
     def on_volume_increase(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -89,7 +89,7 @@ class Volumealsa(plugin.Plugin):
         except KeyError:
             logger.error('cannot set maximal volume, no volume provided')
         except ValueError:
-            logger.error('cannot set maximal volume, invalid value ("%")',
+            logger.error('cannot set maximal volume, invalid value ("%s")',
                     str(values[0]))
 
     def set_max_volume(self, volume: int) -> None:
@@ -102,7 +102,7 @@ class Volumealsa(plugin.Plugin):
             volume = 100
         elif volume < 0:
             volume = 0
-        logger.debug('setting max volume to %', str(volume))
+        logger.debug('setting max volume to %s', str(volume))
         self._volume_max = volume
         if self._volume_current > volume:
             self.set_volume(volume)
@@ -121,13 +121,13 @@ class Volumealsa(plugin.Plugin):
         if len(args) > 0:
             call += args
 
-        logger.debug('calling amixer: %', ','.join(list(call)))
+        logger.debug('calling amixer: %s', ','.join(list(call)))
 
         try:
             result: subprocess.CompletedProcess = subprocess.run(call,
                     capture_output=True, encoding='utf-8', check=True)
         except subprocess.CalledProcessError as e:
-            logger.error('error calling amixer: "%"', e.stderr)
+            logger.error('error calling amixer: "%s"', e.stderr)
             return ''
 
         return result.stdout
@@ -148,7 +148,7 @@ class Volumealsa(plugin.Plugin):
             volume: int = int(result.groupdict()['volume'])
         else:
             volume = self._volume_max
-        logger.debug('current volume: %', str(volume))
+        logger.debug('current volume: %s', str(volume))
         return volume
 
     def set_volume(self, volume: int):
@@ -159,13 +159,13 @@ class Volumealsa(plugin.Plugin):
         """
         result: str = ''
         if volume >= self._volume_max:
-            logger.debug('max volume reached (%)', str(self._volume_max))
+            logger.debug('max volume reached (%s)', str(self._volume_max))
             result = self.amixer('set', 'Master', f'{str(self._volume_max)}%')
         elif volume <= 0:
             logger.debug('min volume reached')
             result = self.amixer('set', 'Master', '0%')
         else:
-            logger.debug('setting volume to %', str(volume))
+            logger.debug('setting volume to %s', str(volume))
             result = self.amixer('set', 'Master', f'{str(volume)}%')
 
         if result == '':
@@ -182,7 +182,7 @@ class Volumealsa(plugin.Plugin):
         """
         # increase / decrease volume in steps of X %
         if not direction in ['+', '-']:
-            logger.error('no such direction "%"', direction)
+            logger.error('no such direction "%s"', direction)
             return
 
         if step is None:
@@ -194,10 +194,10 @@ class Volumealsa(plugin.Plugin):
             logger.debug('min volume reached')
             result = self.amixer('set', 'Master', '0%')
         elif direction == '+' and volume + step >= self._volume_max:
-            logger.debug('max volume reached (%)', str(self._volume_max))
+            logger.debug('max volume reached (%s)', str(self._volume_max))
             result = self.amixer('set', 'Master', f'{str(self._volume_max)}%')
         else:
-            logger.debug('volume: %%', str(direction), str(step))
+            logger.debug('volume: %s%s', str(direction), str(step))
             result = self.amixer('set', 'Master', f'{str(step)}%{direction}')
 
         if result == '':

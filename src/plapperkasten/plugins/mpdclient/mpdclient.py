@@ -314,7 +314,7 @@ class Mpdclient(plugin.Plugin):
         if not force and time.time() < self._last_check + 0.5:
             # the last check was less than 500 ms ago
             logger.debug('no need for further checking')
-            logger.debug(f'returning {self._last_check_result}')
+            logger.debug('returning %s', self._last_check_result)
             return self._last_check_result
 
         self._last_check_result = False
