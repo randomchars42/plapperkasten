@@ -1,0 +1,8 @@
+---
+plugins:
+  volumealsa:
+    # the initial maximal volume [%]
+    max: 100
+    # the step to increase / decrease volume [% of total]
+    step: 1
+
