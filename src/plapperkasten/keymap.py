@@ -5,10 +5,10 @@ import pathlib
 
 from typing import Tuple
 
-from plapperkasten import config as plapperkasten_config
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten import config as plkconfig
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 class KeyMapItem():
     """An item representing a line in a keymap.
@@ -41,7 +41,7 @@ class KeyMap():
         _delimiter: The delimiter between datapoints.
     """
 
-    def __init__(self, config: plapperkasten_config.Config) -> None:
+    def __init__(self, config: plkconfig.Config) -> None:
         """Retrieve config values."""
         self._delimiter: str = config.get_str('core',
                                               'mapping',

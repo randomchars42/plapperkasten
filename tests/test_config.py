@@ -3,7 +3,7 @@
 
 import unittest
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 
 
 class TestConfig(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestConfig(unittest.TestCase):
 
     def setUp(self):
         # empty config
-        self.config: plapperkasten_config.Config = plapperkasten_config.Config()
+        self.config: plkconfig.Config = plkconfig.Config()
 
     def test_get(self):
         self.assertRaises(ValueError,

@@ -8,12 +8,12 @@ import mpd
 
 from typing import Any
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 from mpdclient import statusmap
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Mpdclient(plugin.Plugin):
@@ -36,7 +36,7 @@ class Mpdclient(plugin.Plugin):
             seconds.
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """This gets called by the constructor.
 
         Args:

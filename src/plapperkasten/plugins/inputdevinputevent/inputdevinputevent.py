@@ -6,11 +6,11 @@ import selectors
 
 import evdev
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Inputdevinputevent(plugin.Plugin):
@@ -27,7 +27,7 @@ class Inputdevinputevent(plugin.Plugin):
             pressed.
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """Retrieve the names of the devices to listen to.
 
         Args:

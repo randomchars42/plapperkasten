@@ -56,7 +56,7 @@ logger_queue: multiprocessing.Queue = multiprocessing.Queue(-1)
 root: log.Logger = log.getLogger()
 root.addHandler(handlers.QueueHandler(logger_queue))
 
-class PlapperkastenLogger(log.Logger):
+class PlkLogger(log.Logger):
     """Wrapper around logging.Logger.
 
     Needed so that other modules do not need to import `logging` for
@@ -76,7 +76,7 @@ class PlapperkastenLogger(log.Logger):
                               {})
         self.__dict__ = logger.__dict__
 
-def get_logger(name: str = '') -> PlapperkastenLogger:
+def get_logger(name: str = '') -> PlkLogger:
     """Wrapper aroung logging.getLogger().
 
     Args:
@@ -84,8 +84,8 @@ def get_logger(name: str = '') -> PlapperkastenLogger:
     """
 
     if name == '':
-        return PlapperkastenLogger(log.getLogger())
-    return PlapperkastenLogger(log.getLogger(name))
+        return PlkLogger(log.getLogger())
+    return PlkLogger(log.getLogger(name))
 
 def get_queue() -> multiprocessing.Queue:
     """Return the queue used in the multiprocessing setup.

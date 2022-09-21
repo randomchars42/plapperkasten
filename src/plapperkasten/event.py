@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Structure for events as the basis for plugins to communicate."""
 
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Event():

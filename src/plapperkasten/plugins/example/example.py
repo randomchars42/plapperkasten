@@ -5,11 +5,11 @@ It has to be a descendant of `plapperkasten.plugin.Plugin` and thus becomes a
 descendant of `multiprocessing.Process`.
 """
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Example(plugin.Plugin):
@@ -20,7 +20,7 @@ class Example(plugin.Plugin):
     the main process some time after `on_init` is called.
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """This gets called by the constructor.
 
         Use this function to retrieve and store values from the

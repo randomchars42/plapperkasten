@@ -6,11 +6,11 @@ import pathlib
 import pkg_resources
 import subprocess
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Soundeffects(plugin.Plugin):
@@ -22,7 +22,7 @@ class Soundeffects(plugin.Plugin):
             to names of sound files.
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """Register for events.
 
         Args:

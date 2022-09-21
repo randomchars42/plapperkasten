@@ -2,11 +2,11 @@
 """Initiate shutdown after all process declared themselves idle.
 """
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Autoshutdown(plugin.Plugin):
@@ -19,7 +19,7 @@ class Autoshutdown(plugin.Plugin):
         _global_idle_state: The global idle state.
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """Get configured idle time before shutdown.
 
         Args:

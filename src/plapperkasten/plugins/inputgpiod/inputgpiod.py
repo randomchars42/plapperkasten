@@ -6,12 +6,12 @@ import signal
 
 from gpiodmonitor import gpiodmonitor
 
-from plapperkasten import config as plapperkasten_config
-from plapperkasten import event as plapperkasten_event
+from plapperkasten import config as plkconfig
+from plapperkasten import event as plkevent
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Inputgpiod(plugin.Plugin):
@@ -21,7 +21,7 @@ class Inputgpiod(plugin.Plugin):
         _monitor: Instance of `gpiodmonitor.GPIODMonitor`
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """Setup pins.
 
         Args:
@@ -29,7 +29,8 @@ class Inputgpiod(plugin.Plugin):
         """
 
         self._monitor: gpiodmonitor.GPIODMonitor = gpiodmonitor.GPIODMonitor(
-            chip_number=config.get_int('plugins', 'inputgpiod', 'chip', default=0),
+            chip_number=config.get_int('plugins', 'inputgpiod', 'chip',
+                default=0),
             active_pulses=True)
 
         long_press_duration: int = config.get_int('plugins',
@@ -88,7 +89,7 @@ class Inputgpiod(plugin.Plugin):
             while not self._terminate_signal:
                 self._monitor.tick()
                 try:
-                    event: plapperkasten_event.Event = self._to_plugin.get(
+                    event: plkevent.Event = self._to_plugin.get(
                         True, self._monitor.check_interval / 1000)
                     if hasattr(self, 'on_' + event.name):
                         getattr(self, 'on_' + event.name)(*event.values,

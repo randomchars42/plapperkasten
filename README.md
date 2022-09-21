@@ -22,14 +22,14 @@ All path representations should be `pathlib.Path`-objects instead of strings.
 
 ### Logging
 
-Logging uses a wrapper (`plapperkasten.plapperkastenlogging`) around the `logging` module to cover logging from multiple processes.
+Logging uses a wrapper (`plapperkasten.plklogging`) around the `logging` module to cover logging from multiple processes.
 
 Import a logger using:
 
 ```python
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 # your code here
 ```

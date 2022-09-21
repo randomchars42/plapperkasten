@@ -7,11 +7,11 @@ import subprocess
 
 from typing import Optional
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Volumealsa(plugin.Plugin):
@@ -23,7 +23,7 @@ class Volumealsa(plugin.Plugin):
         _volume_current: The current volume.
     """
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         """This gets called by the constructor.
 
         Args:

@@ -5,11 +5,11 @@ import multiprocessing
 import queue
 import signal
 
-from plapperkasten import config as plapperkasten_config
-from plapperkasten import event as plapperkasten_event
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten import config as plkconfig
+from plapperkasten import event as plkevent
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Plugin(multiprocessing.Process):
@@ -27,7 +27,7 @@ class Plugin(multiprocessing.Process):
         _busy: Indicator if the plugin has marked itself as busy.
     """
 
-    def __init__(self, name: str, config: plapperkasten_config.Config,
+    def __init__(self, name: str, config: plkconfig.Config,
                  to_plugin: multiprocessing.Queue,
                  from_plugin: multiprocessing.Queue) -> None:
         """Initialises the plugin and then calls `on_init()`.
@@ -69,7 +69,7 @@ class Plugin(multiprocessing.Process):
 
         return self._name
 
-    def on_init(self, config: plapperkasten_config.Config) -> None:
+    def on_init(self, config: plkconfig.Config) -> None:
         # pylint: disable=unused-argument
         """Initialises class members.
 
@@ -122,7 +122,7 @@ class Plugin(multiprocessing.Process):
         """
         try:
             self._from_plugin.put_nowait(
-                plapperkasten_event.Event(name, *values, **params))
+                plkevent.Event(name, *values, **params))
         except queue.Full:
             logger.critical('queue from plugins full')
 
@@ -183,7 +183,7 @@ class Plugin(multiprocessing.Process):
         while not self._terminate_signal:
             self.on_tick()
             try:
-                event: plapperkasten_event.Event = self._to_plugin.get(
+                event: plkevent.Event = self._to_plugin.get(
                     True, self._tick_interval)
                 if hasattr(self, 'on_' + event.name):
                     getattr(self, 'on_' + event.name)(*event.values,

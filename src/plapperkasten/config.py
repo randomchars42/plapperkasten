@@ -7,14 +7,14 @@ import pkg_resources
 
 from typing import Any, TypeVar, Callable
 
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
 T = TypeVar('T')
 U = TypeVar('U')
 V = TypeVar('V')
 W = TypeVar('W')
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Config():

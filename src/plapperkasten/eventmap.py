@@ -4,12 +4,12 @@
 import pathlib
 import pkg_resources
 
-from plapperkasten import config as plapperkasten_config
+from plapperkasten import config as plkconfig
 from plapperkasten import event
 from plapperkasten import keymap
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class EventMap(keymap.KeyMap):
@@ -28,7 +28,7 @@ class EventMap(keymap.KeyMap):
         _path_user_map: The path to the map provided by the user.
     """
 
-    def __init__(self, config: plapperkasten_config.Config) -> None:
+    def __init__(self, config: plkconfig.Config) -> None:
         """Initialise variables and load map from file(s).
 
         Args:

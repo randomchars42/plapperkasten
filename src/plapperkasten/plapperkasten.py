@@ -14,13 +14,13 @@ import sys
 
 from types import ModuleType
 
-from plapperkasten import config as plapperkasten_config
-from plapperkasten import event as plapperkasten_event
+from plapperkasten import config as plkconfig
+from plapperkasten import event as plkevent
 from plapperkasten import eventmap
-from plapperkasten import plugin as plapperkasten_plugin
-from plapperkasten.plapperkastenlogging import plapperkastenlogging
+from plapperkasten import plugin as plkplugin
+from plapperkasten.plklogging import plklogging
 
-logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(__name__)
+logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
 class Plapperkasten:
@@ -53,7 +53,7 @@ class Plapperkasten:
             for input, e.g. auto-shutdown.
     """
 
-    def run(self, config: plapperkasten_config.Config) -> None:
+    def run(self, config: plkconfig.Config) -> None:
         """Run the application.
 
         Args:
@@ -75,7 +75,7 @@ class Plapperkasten:
                                                             'passthrough',
                                                             default=[])
 
-        self._plugins: list[plapperkasten_plugin.Plugin] = []
+        self._plugins: list[plkplugin.Plugin] = []
 
         self.load_plugins(config)
 
@@ -92,7 +92,7 @@ class Plapperkasten:
         if len(self._plugins) > 0:
             while not self._terminate_signal:
                 try:
-                    event: plapperkasten_event.Event = self._queue_from_plugins.get(
+                    event: plkevent.Event = self._queue_from_plugins.get(
                         True, 0.1)
                     logger.debug('recieved %s', event.name)
                     self.process_event(event, passthrough_events)
@@ -115,7 +115,7 @@ class Plapperkasten:
             config.get_int('core', 'system', 'shutdown_time', default=1),
             config.get_bool('core', 'system', 'debug', default=False))
 
-    def load_plugins(self, config: plapperkasten_config.Config) -> None:
+    def load_plugins(self, config: plkconfig.Config) -> None:
         """Triggers a (re-)scan of the plugin directories.
 
         Tries to load all packages in the plugin directories as plugin.
@@ -156,7 +156,7 @@ class Plapperkasten:
             config)
 
     def _load_plugins(self, path: pathlib.Path, blacklist: list[str],
-                      config: plapperkasten_config.Config) -> None:
+                      config: plkconfig.Config) -> None:
         """Gathers all packages located under path as plugins.
 
         Expect the main module of the plugin package to be named
@@ -220,7 +220,7 @@ class Plapperkasten:
                 config.load_from_path(path / name / 'config.yaml')
 
                 # load the plugin itself
-                plugin: plapperkasten_plugin.Plugin = getattr(module, classname)(
+                plugin: plkplugin.Plugin = getattr(module, classname)(
                     classname, config, self.get_queue_to_plugin(name),
                     self.get_queue_from_plugins())
 
@@ -397,7 +397,7 @@ class Plapperkasten:
             try:
                 logger.debug('emitting %s for %s', event, subscriber)
                 self.get_queue_to_plugin(subscriber, False).put_nowait(
-                    plapperkasten_event.Event(event, *values, **params))
+                    plkevent.Event(event, *values, **params))
             except queue.Full:
                 logger.critical('queue to plugin %s full', subscriber)
             except KeyError:
@@ -460,10 +460,10 @@ class Plapperkasten:
 
         This creates a process at the recieving end of the
         `logging.handlers.QueueHandler` that is configured by
-        `plapperkasten_logging`.
+        `plklogging`.
         """
 
-        self._logger_queue: multiprocessing.Queue = plapperkastenlogging.get_queue()
+        self._logger_queue: multiprocessing.Queue = plklogging.get_queue()
 
         # Do not use a `threading.Thread` here as it is suggested.
         # This would lead to random occurences of blocked threads on interrupt.
@@ -491,7 +491,7 @@ class Plapperkasten:
 
         signal.signal(signal.SIGINT, lambda signal_num, frame: ...)
         signal.signal(signal.SIGTERM, lambda signal_num, frame: ...)
-        thread_logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger(
+        thread_logger: plklogging.PlkLogger = plklogging.get_logger(
             'logging_thread')
         while True:
             record: logging.LogRecord = record_queue.get(True)
@@ -500,7 +500,7 @@ class Plapperkasten:
                 break
             thread_logger.handle(record)
 
-    def process_event(self, event: plapperkasten_event.Event,
+    def process_event(self, event: plkevent.Event,
                       passthrough: list[str]) -> None:
         """Process incoming events.
 
@@ -585,7 +585,7 @@ class Plapperkasten:
 def main() -> None:
     """Reads cli arguments and runs the main loop."""
 
-    config = plapperkasten_config.Config()
+    config = plkconfig.Config()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -621,7 +621,7 @@ def main() -> None:
     verbosity_level: int = min(args.verbosity, 3)
     if config.get_bool('core', 'system', 'debug', default=False):
         verbosity_level = 3
-    root_logger: plapperkastenlogging.PlapperkastenLogger = plapperkastenlogging.get_logger()
+    root_logger: plklogging.PlkLogger = plklogging.get_logger()
     root_logger.setLevel(levels[verbosity_level])
     if levels[args.verbosity] == 'DEBUG':
         config.set_bool('core', 'system', 'debug', value=True, target='input')
