@@ -73,7 +73,7 @@ class Inputgpiod(plugin.Plugin):
     def run(self) -> None:
         """Check status of the gpio pins at regular intervals.
 
-        Needs to reimplement `plugin.Plugin.run()` to have use the
+        Needs to reimplement `plugin.Plugin.run()` to use the
         contextmanager implemented by `gpiodmonitor`.
         """
 
