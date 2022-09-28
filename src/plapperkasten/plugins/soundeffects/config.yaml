@@ -39,6 +39,10 @@ plugins:
     # by Eponn
     # https://freesound.org/people/Eponn/sounds/528867/
     #
+    # 560188__anthonychartier2020__beep-3.wav
+    # CCby
+    # by anthonychartier2020
+    # https://freesound.org/people/anthonychartier2020/sounds/560188/
     sounds:
       # sound on startup
       ready: '144319__fumiya112__decide.wav'
@@ -48,3 +52,5 @@ plugins:
       error: '331381__qubodup__public-domain-jump-sound.wav'
       # sound on feedback
       feedback: '531510__eponn__correct-blips.wav'
+      # sound on beep
+      beep: '560188__anthonychartier2020__beep-3.wav'

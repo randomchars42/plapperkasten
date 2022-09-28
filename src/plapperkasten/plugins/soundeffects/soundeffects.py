@@ -33,6 +33,7 @@ class Soundeffects(plugin.Plugin):
         self.register_for('shutdown')
         self.register_for('error')
         self.register_for('feedback')
+        self.register_for('beep')
         self._path_sounds = pathlib.Path(
             config.get_str('plugins',
                            'soundeffects',
@@ -83,6 +84,16 @@ class Soundeffects(plugin.Plugin):
             **params: Parameters attached to the event (ignored).
         """
         self.play_sound('feedback')
+
+    def on_beep(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Play sound to notify the user.
+
+        Args:
+            *values: Values attached to the event (ignored).
+            **params: Parameters attached to the event (ignored).
+        """
+        self.play_sound('beep')
 
     def play_sound(self, sound: str):
         """Play sound to notify the user.
