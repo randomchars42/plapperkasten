@@ -165,6 +165,10 @@ class Mpdclient(plugin.Plugin):
         # mark as active so that `on_play()`, `on_toggle()`, `on_stop()`,
         # `on_next()` and `on_prev()` react when called
         self._active = True
+        # edge case
+        # MPD did not connect in `on_before_run()` but now a connection could be
+        # established
+        self._connected = True
         # since music is playing inhibit auto shutdown etc. by claiming to
         # be busy
         self.send_busy()
@@ -225,9 +229,13 @@ class Mpdclient(plugin.Plugin):
             mpd_status: dict[str, str] = self._mpdclient.status()
             if 'error' in mpd_status:
                 raise ConnectionError
+            status.state = mpd_status['state']
+            if status.state == 'stop':
+                status.position = '0'
+                status.elapsed = '0'
+                return status
             status.position = mpd_status['song']
             status.elapsed = mpd_status['elapsed']
-            status.state = mpd_status['state']
         except KeyError:
             logger.error('could not get all information from MPD status')
             return status
@@ -411,6 +419,10 @@ class Mpdclient(plugin.Plugin):
                 # this is not very well documented but empirically seems to
                 # pause mpd
                 self._mpdclient.pause('1')
+            elif self._status.state == 'stop':
+                # edge case
+                # playlist stopped at end of list
+                self._mpdclient.play('0')
             else:
                 self._mpdclient.pause('0')
         except mpd.CommandError:
