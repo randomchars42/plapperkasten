@@ -21,6 +21,8 @@ class Volumealsa(plugin.Plugin):
         _volume_max: The maximal volume.
         _volume_step: The step by which to increase / decrease the volume.
         _volume_current: The current volume.
+        _card: Index of the soundcard to use (may be changed dynamically).
+        _controls: Mapping which control to expect for which card.
     """
 
     def on_init(self, config: plkconfig.Config) -> None:
@@ -38,6 +40,14 @@ class Volumealsa(plugin.Plugin):
                                                   'volumealsa',
                                                   'step',
                                                   default=1)
+        self._card: int = config.get_int('plugins',
+                                                  'volumealsa',
+                                                  'card',
+                                                  default=0)
+        self._controls: dict[int, str] = config.get_dict_int_str('plugins',
+                                                  'volumealsa',
+                                                  'controls',
+                                                  default=dict({0: 'Master'}))
         self._volume_current: int = 0
 
         self.register_for('volume_decrease')
@@ -132,13 +142,24 @@ class Volumealsa(plugin.Plugin):
 
         return result.stdout
 
+    def get_control(self) -> str:
+        """Get the currently active control.
+
+        Returns:
+            The control for use in ALSA / amixer.
+        """
+        try:
+            return self._controls[self._card]
+        except IndexError:
+            return 'Master'
+
     def query_volume(self) -> int:
         """ Retrieve the current volume from ALSA.
 
         Returns:
             The volume.
         """
-        raw: list[str] = self.amixer('get', 'Master').split('\n')
+        raw: list[str] = self.amixer('get', self.get_control()).split('\n')
         # if Master is stereo this will only capture the left line and we infer
         # that this also holds true for the right line
         result: Optional[re.Match] = re.match(re.compile(
@@ -160,13 +181,14 @@ class Volumealsa(plugin.Plugin):
         result: str = ''
         if volume >= self._volume_max:
             logger.debug('max volume reached (%s)', str(self._volume_max))
-            result = self.amixer('set', 'Master', f'{str(self._volume_max)}%')
+            result = self.amixer('set', self.get_control(),
+                    f'{str(self._volume_max)}%')
         elif volume <= 0:
             logger.debug('min volume reached')
-            result = self.amixer('set', 'Master', '0%')
+            result = self.amixer('set', self.get_control(), '0%')
         else:
             logger.debug('setting volume to %s', str(volume))
-            result = self.amixer('set', 'Master', f'{str(volume)}%')
+            result = self.amixer('set', self.get_control(), f'{str(volume)}%')
 
         if result == '':
             logger.error('could not change volume')
@@ -192,15 +214,18 @@ class Volumealsa(plugin.Plugin):
 
         if direction == '-' and volume - step <= 0:
             logger.debug('min volume reached')
-            result = self.amixer('set', 'Master', '0%')
+            result = self.amixer('set', self.get_control(), '0%')
         elif direction == '+' and volume + step >= self._volume_max:
             logger.debug('max volume reached (%s)', str(self._volume_max))
-            result = self.amixer('set', 'Master', f'{str(self._volume_max)}%')
+            result = self.amixer('set', self.get_control(),
+                    f'{str(self._volume_max)}%')
         else:
             logger.debug('volume: %s%s', str(direction), str(step))
-            result = self.amixer('set', 'Master', f'{str(step)}%{direction}')
+            result = self.amixer('set', self.get_control(),
+                    f'{str(step)}%{direction}')
 
         if result == '':
             logger.error('could not change volume')
 
         self._volume_current = self.query_volume()
+        self.send_to_main('feedback')
