@@ -39,27 +39,27 @@ class Soundalsa(plugin.Plugin):
         """
 
         self._volume_max: int = config.get_int('plugins',
-                                                  'volumealsa',
+                                                  'soundalsa',
                                                   'max',
                                                   default=100)
         self._volume_step: int = config.get_int('plugins',
-                                                  'volumealsa',
+                                                  'soundalsa',
                                                   'step',
                                                   default=1)
         self._card: int = config.get_int('plugins',
-                                                  'volumealsa',
+                                                  'soundalsa',
                                                   'default_card',
                                                   default=0)
         self._controls: dict[int, str] = config.get_dict_int_str('plugins',
-                                                  'volumealsa',
+                                                  'soundalsa',
                                                   'controls',
                                                   default=dict({0: 'Master'}))
         self._profiles: dict[str, str] = config.get_dict_str_str('plugins',
-                                                  'volumealsa',
+                                                  'soundalsa',
                                                   'profiles',
                                                   default=dict({'default': ''}))
         self._default_profile: str = config.get_str('plugins',
-                                                  'volumealsa',
+                                                  'soundalsa',
                                                   'default_profile',
                                                   default='default')
         self._current_profile: str = self._default_profile
