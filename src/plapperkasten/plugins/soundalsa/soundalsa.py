@@ -2,6 +2,7 @@
 """A plugin controlling ALSA volume.
 """
 
+import pathlib
 import re
 import subprocess
 
@@ -14,8 +15,8 @@ from plapperkasten.plklogging import plklogging
 logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
-class Volumealsa(plugin.Plugin):
-    """Plugin controlling the volume via ALSA.
+class Soundalsa(plugin.Plugin):
+    """Plugin controlling the sound via ALSA.
 
     Attributes:
         _volume_max: The maximal volume.
@@ -23,6 +24,11 @@ class Volumealsa(plugin.Plugin):
         _volume_current: The current volume.
         _card: Index of the soundcard to use (may be changed dynamically).
         _controls: Mapping which control to expect for which card.
+        _profiles: Dictionary of ALSA profiles. Each profile name (key)
+            is associated with a path to a file which may serve as an
+            `~/.asoundrc`-file. An empty path means no file.
+        _default_profile: The key of the default profile.
+        _current_profile: The key of the current profile.
     """
 
     def on_init(self, config: plkconfig.Config) -> None:
@@ -42,17 +48,27 @@ class Volumealsa(plugin.Plugin):
                                                   default=1)
         self._card: int = config.get_int('plugins',
                                                   'volumealsa',
-                                                  'card',
+                                                  'default_card',
                                                   default=0)
         self._controls: dict[int, str] = config.get_dict_int_str('plugins',
                                                   'volumealsa',
                                                   'controls',
                                                   default=dict({0: 'Master'}))
+        self._profiles: dict[str, str] = config.get_dict_str_str('plugins',
+                                                  'volumealsa',
+                                                  'profiles',
+                                                  default=dict({'default': ''}))
+        self._default_profile: str = config.get_str('plugins',
+                                                  'volumealsa',
+                                                  'default_profile',
+                                                  default='default')
+        self._current_profile: str = self._default_profile
         self._volume_current: int = 0
 
         self.register_for('volume_decrease')
         self.register_for('volume_increase')
         self.register_for('volume_max')
+        self.register_for('toggle_alsa_profile')
 
     def on_before_run(self) -> None:
         """Get current volume and set maximal volume.
@@ -62,6 +78,7 @@ class Volumealsa(plugin.Plugin):
         havoc ensues in tidying up.
         """
         self.set_max_volume(self._volume_max)
+        self.toggle_profile(self._default_profile)
         logger.debug('current volume: %s', str(self.query_volume()))
 
     def on_volume_increase(self, *values: str, **params: str) -> None:
@@ -229,3 +246,70 @@ class Volumealsa(plugin.Plugin):
 
         self._volume_current = self.query_volume()
         self.send_to_main('feedback')
+
+    def on_toggle_alsa_profile(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Toggles the ALSA profile.
+
+        Args:
+            values: Values attached to the event. Takes the first value as the
+                profile to toggle.
+            params: Parameters attached to the event (ignored).
+        """
+        try:
+            if not values[0] in self._profiles.keys():
+                logger.error('profile "%s" not defined', values[0])
+            self.toggle_profile(values[0])
+        except IndexError:
+            logger.error('no profile specified')
+
+    def toggle_profile(self, profile: str):
+        """Toggle between the default profile and the given profile.
+
+        Args:
+            profile: The profile to toggle.
+        """
+        logger.debug('toggling profile "%s"', profile)
+
+        # profile currently active so switch to default profile
+        if profile == self._current_profile:
+            logger.debug('profile "%s" already active, switching to default',
+                    profile)
+            profile = self._default_profile
+
+        self.activate_profile(profile)
+
+    def activate_profile(self, profile: str):
+        """Activate the profile by linking `~/.asoundrc`.
+
+        Args:
+            profile: The profile to activate.
+        """
+        logger.debug('activating profile "%s"', profile)
+
+        profile_path: pathlib.Path = pathlib.Path(profile)
+        target_path: pathlib.Path = pathlib.Path('~/.asoundrc')
+
+        try:
+            if not profile_path.exists():
+                logger.error('profile "%s" does not exist')
+                return
+
+            # make a backup if an actual `~/.asoundrc` existis and not just a
+            # symlink we created
+            if target_path.exists() and not target_path.is_symlink():
+                target_path.rename('~/.asoundrc.bk')
+
+            if target_path.exists():
+                target_path.unlink()
+
+            if self._profiles[profile] == '':
+                # no profile
+                return
+
+            profile_path.symlink_to(target_path)
+            logger.debug('profile "%s" activated', profile)
+        except OSError as e:
+            logger.error('could not activate profile ("%s")', str(e))
+        except KeyError:
+            logger.error('invalid profile name "%s"', profile)

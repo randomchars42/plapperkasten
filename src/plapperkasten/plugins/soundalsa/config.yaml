@@ -1,0 +1,22 @@
+---
+plugins:
+  soundalsa:
+    # the initial maximal volume [%]
+    max: 100
+    # the step to increase / decrease volume [% of total]
+    step: 1
+    # the default card
+    default_card: 0
+    # the volume controls (adapt to your needs in ~/.asoundrc) or use profiles
+    # (see below)
+    # index is the card index
+    controls:
+      0: 'Headphone'
+    # dictionary of files containing ALSA profiles
+    # each file here must be usable as an `~/.asoundrc`
+    # the index is used to specify the default or to switch profiles
+    # leave empty for no
+    profiles:
+      'default': ''
+    # index of `profiles` above that serves as default
+    default_profile: 'default'
