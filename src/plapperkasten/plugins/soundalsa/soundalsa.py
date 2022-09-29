@@ -287,12 +287,12 @@ class Soundalsa(plugin.Plugin):
         """
         logger.debug('activating profile "%s"', profile)
 
-        profile_path: pathlib.Path = pathlib.Path(profile)
-        target_path: pathlib.Path = pathlib.Path('~/.asoundrc')
-
         try:
+            profile_path: pathlib.Path = pathlib.Path(self._profiles[profile])
+            target_path: pathlib.Path = pathlib.Path('~/.asoundrc').expanduser()
+
             if not profile_path.exists():
-                logger.error('profile "%s" does not exist')
+                logger.error('profile "%s" does not exist', profile)
                 return
 
             # make a backup if an actual `~/.asoundrc` existis and not just a
@@ -300,16 +300,21 @@ class Soundalsa(plugin.Plugin):
             if target_path.exists() and not target_path.is_symlink():
                 target_path.rename('~/.asoundrc.bk')
 
-            if target_path.exists():
+            if target_path.exists() or target_path.is_symlink():
                 target_path.unlink()
 
-            if self._profiles[profile] == '':
-                # no profile
-                return
-
-            profile_path.symlink_to(target_path)
-            logger.debug('profile "%s" activated', profile)
+            if not self._profiles[profile] == '':
+                target_path.symlink_to(profile_path)
         except OSError as e:
             logger.error('could not activate profile ("%s")', str(e))
         except KeyError:
             logger.error('invalid profile name "%s"', profile)
+
+        try:
+            subprocess.run(['alsactl', 'restore'],
+                    capture_output=True, encoding='utf-8', check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error('error calling alsactl: "%s"', e.stderr)
+            return
+
+        logger.debug('profile "%s" activated', profile)
