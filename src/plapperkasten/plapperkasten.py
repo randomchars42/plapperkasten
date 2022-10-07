@@ -453,7 +453,7 @@ class Plapperkasten:
             return
 
         if not debug:
-            os.system(f'shutdown -P {str(shutdown_time)}')
+            os.system(f'sudo shutdown -P {str(shutdown_time)}')
 
     def start_logging(self) -> None:
         """Creates a process and a queue to collect log reports.
