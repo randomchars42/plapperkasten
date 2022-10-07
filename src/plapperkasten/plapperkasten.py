@@ -210,8 +210,8 @@ class Plapperkasten:
                 logger.error('could not import plugin %s', name)
                 continue
             # expect the class of the plugin to be a descendant of
-            # plapperkasten.plugin.Plugin and to be named like the package but with
-            # the first letter uppercase, i.e.,
+            # plapperkasten.plugin.Plugin and to be named like the package but
+            # with the first letter uppercase, i.e.,
             # classname: Myplugin
             classname: str = name[0].upper() + name[1:]
 
