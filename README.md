@@ -113,7 +113,7 @@ It will in turn:
   * trigger `on_before_run()` for each pluggin
   * wait for the plugins to send events to process, translate or re-emit so that other plugins can react to them
   * or wait for all plugins to exit (either by themselves or because of a `terminate` event)
-  * if a `shutdown` event has been emitted, `plapperkasten` will try to shutdown the host ([here's how to stop it during development](preventing-shutdown-during-development))
+  * if a `shutdown` event has been emitted, `plapperkasten` will try to shutdown the host ([here's how to stop it during development](#preventing-shutdown-during-development))
 
 ### Examplary flow of events
 
