@@ -280,7 +280,7 @@ class Mpdclient(plugin.Plugin):
             if key[-4:] == '.m3u':
                 key_list = [
                     'file: ' + file
-                    for file in self._mpdclient.listplaylist(key[:-4])
+                    for file in self._mpdclient.listplaylist(key)
                 ]
             else:
                 key_list = [
