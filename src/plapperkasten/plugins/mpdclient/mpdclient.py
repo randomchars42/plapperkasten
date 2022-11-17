@@ -197,7 +197,8 @@ class Mpdclient(plugin.Plugin):
 
             if status.key[-4:] == '.m3u':
                 # the key indicates a playlist to be loaded
-                self._mpdclient.load(status.key[:-4])
+                # https://github.com/MusicPlayerDaemon/MPD/issues/200
+                self._mpdclient.load(status.key)
             else:
                 # the key represents a path to a folder the files in which are
                 # to be coerced into a playlist
