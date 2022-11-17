@@ -90,7 +90,7 @@ class Mpdclient(plugin.Plugin):
         try:
             self._mpdclient.connect(self._host, self._port)
             self._connected = True
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             logger.error('could not connect to MPD')
 
     def on_connection_error(self) -> None:
@@ -112,7 +112,7 @@ class Mpdclient(plugin.Plugin):
         if self._connected:
             try:
                 self.check_mpd(save=True)
-            except ConnectionError:
+            except mpd.base.ConnectionError:
                 self.on_connection_error()
 
     def on_after_run(self) -> None:
@@ -123,7 +123,7 @@ class Mpdclient(plugin.Plugin):
                 self._mpdclient.stop()
                 self._mpdclient.close()
                 self._mpdclient.disconnect()
-            except ConnectionError:
+            except mpd.base.ConnectionError:
                 self.on_connection_error()
 
     def on_load_source(self, *values: str, **params: str) -> None:
@@ -158,7 +158,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not apply status')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
 
@@ -208,7 +208,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not apply status')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
         self._status = status
@@ -229,7 +229,7 @@ class Mpdclient(plugin.Plugin):
         try:
             mpd_status: dict[str, str] = self._mpdclient.status()
             if 'error' in mpd_status:
-                raise ConnectionError
+                raise mpd.base.ConnectionError
             status.state = mpd_status['state']
             if status.state == 'stop':
                 status.position = '0'
@@ -240,7 +240,7 @@ class Mpdclient(plugin.Plugin):
         except KeyError:
             logger.error('could not get all information from MPD status')
             return status
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return status
 
@@ -291,7 +291,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not apply status')
             return False
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return False
 
@@ -397,7 +397,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not play')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
 
@@ -429,7 +429,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not toggle')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
 
@@ -453,7 +453,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not stop')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
 
@@ -476,7 +476,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not jump to next title')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
 
@@ -499,7 +499,7 @@ class Mpdclient(plugin.Plugin):
         except mpd.CommandError:
             logger.error('could not jump to previous title')
             return
-        except ConnectionError:
+        except mpd.base.ConnectionError:
             self.on_connection_error()
             return
 
