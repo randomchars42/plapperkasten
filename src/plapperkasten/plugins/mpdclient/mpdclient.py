@@ -155,8 +155,8 @@ class Mpdclient(plugin.Plugin):
 
         try:
             self._mpdclient.play()
-        except mpd.CommandError:
-            logger.error('could not apply status')
+        except mpd.CommandError as error:
+            logger.error(f'could not start playing ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -205,8 +205,8 @@ class Mpdclient(plugin.Plugin):
                 self._mpdclient.add(status.key)
 
             self._mpdclient.seek(status.position, status.elapsed)
-        except mpd.CommandError:
-            logger.error('could not apply status')
+        except mpd.CommandError as error:
+            logger.error(f'could not apply status ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -288,8 +288,8 @@ class Mpdclient(plugin.Plugin):
                     for file in self._mpdclient.search('base', key)
                 ]
 
-        except mpd.CommandError:
-            logger.error('could not apply status')
+        except mpd.CommandError as error:
+            logger.error(f'could not compare playlists ("{error}")')
             return False
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -394,8 +394,8 @@ class Mpdclient(plugin.Plugin):
 
         try:
             self._mpdclient.play('0')
-        except mpd.CommandError:
-            logger.error('could not play')
+        except mpd.CommandError as error:
+            logger.error(f'could not play ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -426,8 +426,8 @@ class Mpdclient(plugin.Plugin):
                 self._mpdclient.play('0')
             else:
                 self._mpdclient.pause('0')
-        except mpd.CommandError:
-            logger.error('could not toggle')
+        except mpd.CommandError as error:
+            logger.error(f'could not toggle ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -450,8 +450,8 @@ class Mpdclient(plugin.Plugin):
         try:
             self._mpdclient.stop()
             self._mpdclient.seek('0', '0')
-        except mpd.CommandError:
-            logger.error('could not stop')
+        except mpd.CommandError as error:
+            logger.error('could not stop ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -473,8 +473,8 @@ class Mpdclient(plugin.Plugin):
 
         try:
             self._mpdclient.next()
-        except mpd.CommandError:
-            logger.error('could not jump to next title')
+        except mpd.CommandError as error:
+            logger.error(f'could not jump to next title ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -496,8 +496,8 @@ class Mpdclient(plugin.Plugin):
 
         try:
             self._mpdclient.previous()
-        except mpd.CommandError:
-            logger.error('could not jump to previous title')
+        except mpd.CommandError as error:
+            logger.error('could not jump to previous title ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
