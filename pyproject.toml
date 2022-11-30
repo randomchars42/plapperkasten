@@ -1,6 +1,6 @@
 [project]
 name = 'plapperkasten'
-version = '0.5.0'
+version = '0.5.1'
 description = ''
 readme = 'README.md'
 requires-python = '>=3.9'
@@ -27,7 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 inputgpiod = [
-    'gpiodmonitor~=1.2'
+    'gpiodmonitor~=1.3'
 ]
 
 [project.urls]
