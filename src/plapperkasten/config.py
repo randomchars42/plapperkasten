@@ -5,7 +5,7 @@ import yaml
 import pathlib
 import pkg_resources
 
-from typing import Any, TypeVar, Callable
+from typing import Any, Callable, Optional, TypeVar
 
 from plapperkasten.plklogging import plklogging
 
@@ -123,20 +123,20 @@ class Config():
     def merge_dicts(self,
                     a: dict[Any, Any],
                     b: dict[Any, Any],
-                    path: list[Any] = None) -> dict[Any, Any]:
+                    path: Optional[list[Any]] = None) -> dict[Any, Any]:
         """Merges dictionary b into a.
 
         Args:
             a: The dictionary to get updated.
             b: The dictionary to merge into a.
-            path: A "path" (lsit of keys) to the current leaf.
+            path: A "path" (list of keys) to the current leaf.
 
         Returns:
             The final dictionary.
         """
 
         # Found here:
-        # <https://stackoverflow.com/questions/7204805/how-to-merge-dictionaries-of-dictionaries>
+        # <https://stackoverflow.com/questions/7204805>
         if path is None:
             path = []
         for key in b:
