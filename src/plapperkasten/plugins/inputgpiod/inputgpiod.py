@@ -35,12 +35,12 @@ class Inputgpiod(plugin.Plugin):
         long_press_duration: float = config.get_float('plugins',
                                                   'inputgpiod',
                                                   'long_press_duration',
-                                                  default=1)
+                                                  default=1.5)
 
         press_pulse_interval: float = config.get_float('plugins',
                                                   'inputgpiod',
                                                   'press_pulse_interval',
-                                                  default=1)
+                                                  default=0.3)
 
         for pin in config.get_list_int('plugins',
                                        'inputgpiod',
