@@ -32,12 +32,12 @@ class Inputgpiod(plugin.Plugin):
             chip_number=config.get_int('plugins', 'inputgpiod', 'chip',
                 default=0))
 
-        long_press_duration: int = config.get_int('plugins',
+        long_press_duration: float = config.get_float('plugins',
                                                   'inputgpiod',
                                                   'long_press_duration',
                                                   default=1)
 
-        press_pulse_interval: int = config.get_int('plugins',
+        press_pulse_interval: float = config.get_float('plugins',
                                                   'inputgpiod',
                                                   'press_pulse_interval',
                                                   default=1)
@@ -61,7 +61,7 @@ class Inputgpiod(plugin.Plugin):
                                        'inputgpiod',
                                        'press_pulse',
                                        default=[]):
-            self._monitor.register_pulsed(
+            self._monitor.register_pulsed_active(
                     pin,
                     callback=self.send_pulsed_press_signal,
                     seconds=press_pulse_interval)
