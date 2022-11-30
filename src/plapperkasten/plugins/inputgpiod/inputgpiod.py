@@ -38,6 +38,11 @@ class Inputgpiod(plugin.Plugin):
                                                   'long_press_duration',
                                                   default=1)
 
+        press_pulse_interval: int = config.get_int('plugins',
+                                                  'inputgpiod',
+                                                  'press_pulse_interval',
+                                                  default=1)
+
         for pin in config.get_list_int('plugins',
                                        'inputgpiod',
                                        'press_short',
@@ -52,6 +57,24 @@ class Inputgpiod(plugin.Plugin):
                 pin,
                 callback=self.send_long_press_signal,
                 seconds=long_press_duration)
+
+        for pin in config.get_list_int('plugins',
+                                       'inputgpiod',
+                                       'press_pulse',
+                                       default=[]):
+            self._monitor.register_pulsed(
+                    pin,
+                    callback=self.send_pulsed_press_signal,
+                    seconds=press_pulse_interval)
+
+    def send_pulsed_press_signal(self, pin: int) -> None:
+        """Send a raw event to signal a short press.
+
+        Args:
+            pin: The number of the pin.
+        """
+
+        self.send_to_main('raw', f'{pin}_pulsed')
 
     def send_short_press_signal(self, pin: int) -> None:
         """Send a raw event to signal a short press.

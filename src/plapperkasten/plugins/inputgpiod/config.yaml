@@ -7,5 +7,10 @@ plugins:
     press_short: []
     # the BCM number of the pins to monitor for long presses
     press_long: []
+    # the BCM number of the pins to fire repetitively on long presses
+    press_pulse: []
+    # the number of milliseconds between two pulsed "*_short" signals
+    # on monitored pins (see above)
+    press_pulse_interval: 300
     # the number of seconds before a long press is assumed
     long_press_duration: 2
