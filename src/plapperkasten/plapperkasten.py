@@ -505,7 +505,7 @@ class Plapperkasten:
         """Process incoming events.
 
         Events named 'raw' will be looked up in the event map. All other
-        events will be emitted if allowd by config.events.passthrough.
+        events will be emitted if allowed by config.events.passthrough.
 
         Args:
             event: The event to process.
@@ -532,7 +532,7 @@ class Plapperkasten:
             getattr(self, 'on_' + event.name)(*event.values, **event.params)
 
         if event.name in ('busy', 'idle'):
-            # those case are taken care of by `on_idle` and `on_busy` so
+            # those cases are taken care of by `on_idle` and `on_busy` so
             # return
             return
 

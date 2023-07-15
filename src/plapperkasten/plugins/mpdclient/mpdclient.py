@@ -138,6 +138,8 @@ class Mpdclient(plugin.Plugin):
 
         if not all(x in params for x in ('use', 'key')):
             logger.error('malformed load_source event')
+            self._active = False
+            self.send_idle()
             return
         elif not params['use'] == self.get_name():
             # event meant for another plugin
@@ -252,7 +254,7 @@ class Mpdclient(plugin.Plugin):
         There is no easy way to determine whether MPD's current
         playlist / queue is the same as has been loaded by
         `on_load_source()` as MPD. One needs to compare MPD's current
-        playlist with a hypthetical, expected playlist.
+        playlist with a hypothetical, expected playlist.
 
         In theory the queue should only be altered by another call to
         `on_load_source()` but as many clients could connect to MPD we
@@ -329,7 +331,7 @@ class Mpdclient(plugin.Plugin):
         self._last_check_result = False
 
         if not self._active:
-            # this function will might be called by a function triggered by a
+            # this function might be called by a function triggered by a
             # button (`on_next`, ...); this might hapen happen even if mpd is
             # not active in this case another plugin playing something might
             # be active
