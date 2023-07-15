@@ -536,7 +536,7 @@ class Plapperkasten:
             # return
             return
 
-        if new or not event.name in passthrough:
+        if new or event.name in passthrough:
             self.emit(event.name, *event.values, **event.params)
 
     def on_busy(self, *values: str, **params: str) -> None:
