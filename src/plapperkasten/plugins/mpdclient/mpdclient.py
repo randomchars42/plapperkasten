@@ -61,12 +61,9 @@ class Mpdclient(plugin.Plugin):
                                          default=6600)
 
         self._connected: bool = False
-        self._active: bool = False
         self._statusmap: statusmap.StatusMap = statusmap.StatusMap(config)
         self._status: statusmap.Status = statusmap.Status()
-        self._last_save: int = 0
-        self._last_check: int = 0
-        self._last_check_result: bool = False
+        self.reset_to_default()
 
         self.register_for('load_source')
         self.register_for('toggle')
@@ -74,6 +71,39 @@ class Mpdclient(plugin.Plugin):
         self.register_for('stop')
         self.register_for('next')
         self.register_for('previous')
+
+    def reset_to_default(self) -> None:
+        """Reset members to default, either on startup or on error."""
+        self._active: bool = False
+        self._last_save: int = 0
+        self._last_check: int = 0
+        self._last_check_result: bool = False
+
+    def on_error(self, message: str, stop: bool = True) -> None:
+        """Return to default state, log error and notify user.
+
+        Args:
+            message: message to log
+            stop: stop MPD? defaults to `True`
+        """
+        logger.error(message)
+        self.reset_to_default()
+        self.send_idle()
+        self.send_to_main("error")
+        if not stop:
+            return
+        try:
+            self._mpdclient.stop()
+            # do not diconnect as we might recover
+            #self._mpdclient.close()
+            #self._mpdclient.disconnect()
+        except:
+            logger.debug("could not stop")
+
+    def on_connection_error(self) -> None:
+        """Log event and mark as not connected."""
+
+        self.on_error('lost connection to MPD', False)
 
     def on_before_run(self) -> None:
         """Instantiate the MPD client.
@@ -91,12 +121,7 @@ class Mpdclient(plugin.Plugin):
             self._mpdclient.connect(self._host, self._port)
             self._connected = True
         except mpd.base.ConnectionError:
-            logger.error('could not connect to MPD')
-
-    def on_connection_error(self) -> None:
-        """Log event and mark as not connected."""
-        self._connected = False
-        logger.error('lost connection to MPD')
+            self.on_error('could not connect to MPD', False)
 
     def on_tick(self) -> None:
         """Called every `_tick_interval` [s] while the process runs.
@@ -136,15 +161,36 @@ class Mpdclient(plugin.Plugin):
                 `use` and `key` are used.
         """
 
-        if not all(x in params for x in ('use', 'key')):
-            logger.error('malformed load_source event')
-            self._active = False
-            self.send_idle()
-            return
-        elif not params['use'] == self.get_name():
+        if not params['use'] == self.get_name():
             # event meant for another plugin
-            self._active = False
+            # we try to be nice and stop
+            # if we were already playing
+            if not self.check_mpd(save=False, force=False):
+                return
+
+            try:
+                self._mpdclient.stop()
+            except mpd.CommandError as error:
+                self.on_error('could not stop ("{error}")')
+                return
+            except mpd.base.ConnectionError:
+                self.on_connection_error()
+                return
+
+            # save position
+            self.check_mpd(save=True, force=True)
+            # and hand over
+            # we are not busy (anymore)
             self.send_idle()
+            # make `on_play()` etc. stop reacting to their events
+            # it's someone else's time to react (lod_source|for=someoneelse)
+            self._active = False
+            return
+
+        # we established that this event is meant for us so we check its
+        # integrity
+        if not all(x in params for x in ('use', 'key')):
+            self.on_error('malformed load_source event')
             return
 
         # create a playlist from the resource and play it
@@ -158,7 +204,7 @@ class Mpdclient(plugin.Plugin):
         try:
             self._mpdclient.play()
         except mpd.CommandError as error:
-            logger.error(f'could not start playing ("{error}")')
+            self.on_error(f'could not start playing ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -208,7 +254,7 @@ class Mpdclient(plugin.Plugin):
 
             self._mpdclient.seek(status.position, status.elapsed)
         except mpd.CommandError as error:
-            logger.error(f'could not apply status ("{error}")')
+            self.on_error(f'could not apply status ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -291,7 +337,7 @@ class Mpdclient(plugin.Plugin):
                 ]
 
         except mpd.CommandError as error:
-            logger.error(f'could not compare playlists ("{error}")')
+            self.on_error(f'could not compare playlists ("{error}")')
             return False
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -375,8 +421,10 @@ class Mpdclient(plugin.Plugin):
             self._statusmap.update_status(self._status)
 
         if self._status.state == 'play':
+            logger.debug('status: playing')
             self.send_busy()
         else:
+            logger.debug('status: idle')
             self.send_idle()
 
         logger.debug('finished checking mpd')
@@ -397,7 +445,7 @@ class Mpdclient(plugin.Plugin):
         try:
             self._mpdclient.play('0')
         except mpd.CommandError as error:
-            logger.error(f'could not play ("{error}")')
+            self.on_error(f'could not play ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -429,7 +477,7 @@ class Mpdclient(plugin.Plugin):
             else:
                 self._mpdclient.pause('0')
         except mpd.CommandError as error:
-            logger.error(f'could not toggle ("{error}")')
+            self.on_error(f'could not toggle ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -453,7 +501,7 @@ class Mpdclient(plugin.Plugin):
             self._mpdclient.stop()
             self._mpdclient.seek('0', '0')
         except mpd.CommandError as error:
-            logger.error('could not stop ("{error}")')
+            self.on_error('could not stop ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -476,7 +524,7 @@ class Mpdclient(plugin.Plugin):
         try:
             self._mpdclient.next()
         except mpd.CommandError as error:
-            logger.error(f'could not jump to next title ("{error}")')
+            self.on_error(f'could not jump to next title ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
@@ -499,7 +547,7 @@ class Mpdclient(plugin.Plugin):
         try:
             self._mpdclient.previous()
         except mpd.CommandError as error:
-            logger.error('could not jump to previous title ("{error}")')
+            self.on_error('could not jump to previous title ("{error}")')
             return
         except mpd.base.ConnectionError:
             self.on_connection_error()
