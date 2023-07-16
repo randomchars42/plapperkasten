@@ -5,7 +5,7 @@ import yaml
 import pathlib
 import pkg_resources
 
-from typing import Any, TypeVar, Callable
+from typing import Any, Callable, Optional, TypeVar
 
 from plapperkasten.plklogging import plklogging
 
@@ -123,20 +123,20 @@ class Config():
     def merge_dicts(self,
                     a: dict[Any, Any],
                     b: dict[Any, Any],
-                    path: list[Any] = None) -> dict[Any, Any]:
+                    path: Optional[list[Any]] = None) -> dict[Any, Any]:
         """Merges dictionary b into a.
 
         Args:
             a: The dictionary to get updated.
             b: The dictionary to merge into a.
-            path: A "path" (lsit of keys) to the current leaf.
+            path: A "path" (list of keys) to the current leaf.
 
         Returns:
             The final dictionary.
         """
 
         # Found here:
-        # <https://stackoverflow.com/questions/7204805/how-to-merge-dictionaries-of-dictionaries>
+        # <https://stackoverflow.com/questions/7204805>
         if path is None:
             path = []
         for key in b:
@@ -235,6 +235,10 @@ class Config():
         """Return the configuration or default, see Config.get()."""
         return self._get(*path, default=default, convert=int)
 
+    def get_float(self, *path: str, default: float) -> float:
+        """Return the configuration or default, see Config.get()."""
+        return self._get(*path, default=default, convert=float)
+
     def get_str(self, *path: str, default: str) -> str:
         """Return the configuration or default, see Config.get()."""
         return self._get(*path, default=default, convert=str)
@@ -248,6 +252,12 @@ class Config():
         return self._get(*path,
                          default=default,
                          convert=lambda l: self._convert_list(l, int)).copy()
+
+    def get_list_float(self, *path: str, default: list[float]) -> list[float]:
+        """Return the configuration or default, see Config.get()."""
+        return self._get(*path,
+                         default=default,
+                         convert=lambda l: self._convert_list(l, float)).copy()
 
     def get_list_str(self, *path: str, default: list[str]) -> list[str]:
         """Return the configuration or default, see Config.get()."""
@@ -268,6 +278,14 @@ class Config():
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, int, int)).copy()
+
+    def get_dict_int_float(self, *path: str,
+                         default: dict[int, float]) -> dict[int, float]:
+        """Return the configuration or default, see Config.get()."""
+        return self._get(
+            *path,
+            default=default,
+            convert=lambda d: self._convert_dict(d, int, float)).copy()
 
     def get_dict_int_str(self, *path: str,
                          default: dict[int, str]) -> dict[int, str]:
@@ -292,6 +310,14 @@ class Config():
             *path,
             default=default,
             convert=lambda d: self._convert_dict(d, str, int)).copy()
+
+    def get_dict_str_float(self, *path: str,
+                         default: dict[str, float]) -> dict[str, float]:
+        """Return the configuration or default, see Config.get()."""
+        return self._get(
+            *path,
+            default=default,
+            convert=lambda d: self._convert_dict(d, str, float)).copy()
 
     def get_dict_str_str(self, *path: str,
                          default: dict[str, str]) -> dict[str, str]:
@@ -349,6 +375,10 @@ class Config():
         """Set the value for a config path, see Config.set()."""
         self._set(*path, value=value, convert=int, target=target)
 
+    def set_float(self, *path: str, value: float, target: str = 'default'):
+        """Set the value for a config path, see Config.set()."""
+        self._set(*path, value=value, convert=float, target=target)
+
     def set_str(self, *path: str, value: str, target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
         self._set(*path, value=value, convert=str, target=target)
@@ -365,6 +395,16 @@ class Config():
         self._set(*path,
                   value=value,
                   convert=lambda l: self._convert_list(l, int),
+                  target=target)
+
+    def set_list_float(self,
+                     *path: str,
+                     value: list[float],
+                     target: str = 'default'):
+        """Set the value for a config path, see Config.set()."""
+        self._set(*path,
+                  value=value,
+                  convert=lambda l: self._convert_list(l, float),
                   target=target)
 
     def set_list_str(self,
@@ -397,6 +437,16 @@ class Config():
                   convert=lambda d: self._convert_dict(d, int, int),
                   target=target)
 
+    def set_dict_int_float(self,
+                         *path: str,
+                         value: dict[int, float],
+                         target: str = 'default'):
+        """Set the value for a config path, see Config.set()."""
+        self._set(*path,
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, int, float),
+                  target=target)
+
     def set_dict_int_str(self,
                          *path: str,
                          value: dict[int, str],
@@ -425,6 +475,16 @@ class Config():
         self._set(*path,
                   value=value,
                   convert=lambda d: self._convert_dict(d, str, int),
+                  target=target)
+
+    def set_dict_str_float(self,
+                         *path: str,
+                         value: dict[str, float],
+                         target: str = 'default'):
+        """Set the value for a config path, see Config.set()."""
+        self._set(*path,
+                  value=value,
+                  convert=lambda d: self._convert_dict(d, str, float),
                   target=target)
 
     def set_dict_str_str(self,

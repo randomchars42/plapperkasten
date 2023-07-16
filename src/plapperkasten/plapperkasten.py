@@ -210,8 +210,8 @@ class Plapperkasten:
                 logger.error('could not import plugin %s', name)
                 continue
             # expect the class of the plugin to be a descendant of
-            # plapperkasten.plugin.Plugin and to be named like the package but with
-            # the first letter uppercase, i.e.,
+            # plapperkasten.plugin.Plugin and to be named like the package but
+            # with the first letter uppercase, i.e.,
             # classname: Myplugin
             classname: str = name[0].upper() + name[1:]
 
@@ -505,7 +505,7 @@ class Plapperkasten:
         """Process incoming events.
 
         Events named 'raw' will be looked up in the event map. All other
-        events will be emitted if allowd by config.events.passthrough.
+        events will be emitted if allowed by config.events.passthrough.
 
         Args:
             event: The event to process.
@@ -532,11 +532,11 @@ class Plapperkasten:
             getattr(self, 'on_' + event.name)(*event.values, **event.params)
 
         if event.name in ('busy', 'idle'):
-            # those case are taken care of by `on_idle` and `on_busy` so
+            # those cases are taken care of by `on_idle` and `on_busy` so
             # return
             return
 
-        if new or not event.name in passthrough:
+        if new or event.name in passthrough:
             self.emit(event.name, *event.values, **event.params)
 
     def on_busy(self, *values: str, **params: str) -> None:

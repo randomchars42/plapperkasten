@@ -27,37 +27,3 @@ core:
   events:
     # events that will be re-emitted when they are recieved by the main process
     passthrough: []
-#
-# standard plugins
-#
-#plugins:
-#
-#  mpc:
-#    # increase / decrease in steps of STEP % of 100 %
-#    # DEPRECIATED - use Soundcontrol instead
-#    volume_step: 5
-#    # the path to the keymap containing all status information
-#    # relative to the user config directory
-#    path_status: 'mpd_status'
-#    # the interval for polling MPD's status in seconds
-#    interval_poll: 5
-#
-#  soundcontrol:
-#    # increase / decrease in steps of STEP % of 100 %
-#    volume_step: 5
-#    # small file where the maximal allowed volume is smalled in
-#    # relative to the user config directory
-#    path_max_volume: max_volume
-#    # maximal volume
-#    # fallback if nothing has been stored in max_volume
-#    max_volume: 80
-#
-#  onoffshim:
-#    # listen on this chip
-#    chip: 0
-#    # pin to pull down for next reboot
-#    # if you change this pin you need to edit:
-#    # /usr/lib/systemd/system-shutdown/boxcontroller_poweroff.shutdown
-#    pin_shutdown: 4
-#    # pin to listen to for shutdown signal
-#    pin_listen: 17

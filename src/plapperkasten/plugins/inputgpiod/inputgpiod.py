@@ -30,13 +30,17 @@ class Inputgpiod(plugin.Plugin):
 
         self._monitor: gpiodmonitor.GPIODMonitor = gpiodmonitor.GPIODMonitor(
             chip_number=config.get_int('plugins', 'inputgpiod', 'chip',
-                default=0),
-            active_pulses=True)
+                default=0))
 
-        long_press_duration: int = config.get_int('plugins',
+        long_press_duration: float = config.get_float('plugins',
                                                   'inputgpiod',
                                                   'long_press_duration',
-                                                  default=1)
+                                                  default=1.5)
+
+        press_pulse_interval: float = config.get_float('plugins',
+                                                  'inputgpiod',
+                                                  'press_pulse_interval',
+                                                  default=0.3)
 
         for pin in config.get_list_int('plugins',
                                        'inputgpiod',
@@ -52,6 +56,24 @@ class Inputgpiod(plugin.Plugin):
                 pin,
                 callback=self.send_long_press_signal,
                 seconds=long_press_duration)
+
+        for pin in config.get_list_int('plugins',
+                                       'inputgpiod',
+                                       'press_pulse',
+                                       default=[]):
+            self._monitor.register_pulsed_active(
+                    pin,
+                    callback=self.send_pulsed_press_signal,
+                    seconds=press_pulse_interval)
+
+    def send_pulsed_press_signal(self, pin: int) -> None:
+        """Send a raw event to signal a short press.
+
+        Args:
+            pin: The number of the pin.
+        """
+
+        self.send_to_main('raw', f'{pin}_pulsed')
 
     def send_short_press_signal(self, pin: int) -> None:
         """Send a raw event to signal a short press.
