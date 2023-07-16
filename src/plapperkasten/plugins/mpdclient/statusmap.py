@@ -99,7 +99,7 @@ class StatusMap(keymap.KeyMap):
             return Status(key, item.values[0], item.values[1])
         except KeyError as e:
             logger.error('no event for key: "%s"', key)
-            raise KeyError from e
+            return Status()
         except IndexError:
             logger.error('index error')
             return Status()
