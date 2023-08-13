@@ -24,6 +24,38 @@ class KeyMapItem():
         self.values: list[str] = []
         self.params: dict[str, str] = {}
 
+class KeyMapLib():
+    @staticmethod
+    def process_data(raw_line: str, delimiter: str) -> Tuple[str, KeyMapItem]:
+        """Process a mapping.
+
+        Mapping lines are formatted like this:
+        KEY|DATUM1|KEYWORD2=DATUM2|KEYWORD3=DATUM3|...
+
+        Args:
+            raw_line: The raw line to parse.
+
+        Returns:
+            A tuple containing the key and the KeyMapItem.
+        """
+        if raw_line == '':
+            raise ValueError('empty mapping given')
+
+        key: str = ''
+        rest: list[str] = []
+        key, *rest = raw_line.split(delimiter)
+
+        item: KeyMapItem = KeyMapItem()
+
+        for raw in rest:
+            raw = raw.strip()
+            pieces: list[str] = raw.split('=', 1)
+            if len(pieces) == 1:
+                item.values.append(pieces[0])
+            else:
+                item.params[pieces[0]] = pieces[1]
+
+        return (key, item)
 
 class KeyMap():
     """Representation of data where a database would be too much.
@@ -113,24 +145,7 @@ class KeyMap():
         Returns:
             A tuple containing the key and the KeyMapItem.
         """
-        if raw_line == '':
-            raise ValueError('empty mapping given')
-
-        key: str = ''
-        rest: list[str] = []
-        key, *rest = raw_line.split(self.get_delimiter())
-
-        item: KeyMapItem = KeyMapItem()
-
-        for raw in rest:
-            raw = raw.strip()
-            pieces: list[str] = raw.split('=', 1)
-            if len(pieces) == 1:
-                item.values.append(pieces[0])
-            else:
-                item.params[pieces[0]] = pieces[1]
-
-        return (key, item)
+        return KeyMapLib.process_data(raw_line, self.get_delimiter())
 
     def get(self, key: str) -> KeyMapItem:
         """Return the entry mapped to the key or an empty item.
