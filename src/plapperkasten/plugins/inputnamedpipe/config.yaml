@@ -2,5 +2,7 @@
 
 plugins: # use this namespace for plugin configuration
   inputnamedpipe:
-    name: 'pipe_in'
+    # name of the pipe
+    name: 'plapperkasten_pipe_in'
+    # interval to check for new input in ms
     read_interval: 200
