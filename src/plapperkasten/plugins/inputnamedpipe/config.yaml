@@ -1,0 +1,6 @@
+---
+
+plugins: # use this namespace for plugin configuration
+  inputnamedpipe:
+    name: 'pipe_in'
+    read_interval: 200

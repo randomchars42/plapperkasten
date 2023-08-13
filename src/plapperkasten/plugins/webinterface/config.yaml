@@ -1,6 +1,0 @@
----
-
-plugins: # use this namespace for plugin configuration
-  webinterface:
-    hostname: 'localhost'
-    port: 8080
