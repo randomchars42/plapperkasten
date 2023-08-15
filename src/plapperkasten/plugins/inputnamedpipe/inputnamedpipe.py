@@ -50,7 +50,7 @@ from plapperkasten.plklogging import plklogging
 logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
 
-class InputNamedPipe(plugin.Plugin):
+class Inputnamedpipe(plugin.Plugin):
     """The main class of the plugin.
 
     Sets up a FIFO named pipe which will be read non-blockingly in
