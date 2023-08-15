@@ -201,6 +201,10 @@ class Inputnamedpipe(plugin.Plugin):
         try:
             eventname, item = keymap.KeyMapLib.process_data(request,
                                                             self._delimiter)
+            logger.debug('recieved event "%s" with "%s" and params "%s"',
+                         eventname, ','.join(item.values),
+                         ','.join([f'{key}={value}' for key, value in
+                                   item.params.items()]))
         except ValueError:
             logger.error('recieved malformatted request: "%s"', request)
             # drop malformed request
