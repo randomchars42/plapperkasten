@@ -119,10 +119,14 @@ class Inputnamedpipe(plugin.Plugin):
         self._terminate_signal = True
 
         try:
-            path.resolve()
+            path = path.expanduser().resolve()
         except RuntimeError:
             logger.error('could not resolve path "%s" (infinite recursion)',
                          str(path))
+            return
+
+        if not path.parent.exists():
+            logger.error('path "%s" does not exist', str(path.parent))
             return
 
         try:
@@ -163,30 +167,29 @@ class Inputnamedpipe(plugin.Plugin):
         # a request is a string delimited by "\n" which will be parsed
         request: str = ''
 
-        while not self._terminate_signal:
-            try:
-                # read at most 1024 bytes and decode to utf-8
-                chunk = os.read(self._io, 1024).decode(encoding="utf-8")
-            except OSError as error:
-                if error.errno in [errno.EAGAIN, errno.EWOULDBLOCK]:
-                    # pipe is empty
-                    chunk = ""
-                else:
-                    logger.error('could not read pipe')
-                    self._terminate_signal = True
+        try:
+            # read at most 1024 bytes and decode to utf-8
+            chunk = os.read(self._io, 1024).decode(encoding="utf-8")
+        except OSError as error:
+            if error.errno in [errno.EAGAIN, errno.EWOULDBLOCK]:
+                # pipe is empty
+                chunk = ""
+            else:
+                logger.error('could not read pipe')
+                self._terminate_signal = True
 
-            if not chunk == "":
-                # if something was recieved
-                # append it to the buffer
-                self._buffer += chunk
-                # and scan if there are one or more requests separated by
-                # "\n"
-                while "\n" in self._buffer:
-                    # splice a request (everything until the first "\n")
-                    # from the front section of the buffer and leave the
-                    # rest unchanged on the heap
-                    request, self._buffer = self._buffer.split("\n", 1)
-                    self.process_request(request)
+        if not chunk == "":
+            # if something was recieved
+            # append it to the buffer
+            self._buffer += chunk
+            # and scan if there are one or more requests separated by
+            # "\n"
+            while "\n" in self._buffer:
+                # splice a request (everything until the first "\n")
+                # from the front section of the buffer and leave the
+                # rest unchanged on the heap
+                request, self._buffer = self._buffer.split("\n", 1)
+                self.process_request(request)
 
     def process_request(self, request: str) -> None:
         """Process a request.
@@ -207,6 +210,7 @@ class Inputnamedpipe(plugin.Plugin):
 
     def on_after_run(self) -> None:
         """Give the plugin a chance to tidy up."""
+        logger.debug('closing pipe')
         if not hasattr(self, '_path') or not hasattr(self, '_io'):
             return
         try:
