@@ -207,6 +207,8 @@ class Inputnamedpipe(plugin.Plugin):
 
     def on_after_run(self) -> None:
         """Give the plugin a chance to tidy up."""
+        if not hasattr(self, '_path') or not hasattr(self, '_io'):
+            return
         try:
             os.close(self._io)
         except OSError:
