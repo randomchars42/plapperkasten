@@ -19,7 +19,7 @@ look like this:
 raw|0123456789\n
 
 This would make the main application lookup "0123456789" in the
-events.map annd if found send the corresponding event.
+events.map and if found send the corresponding event.
 
 Or you could send an event like this:
 
