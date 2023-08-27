@@ -7,14 +7,11 @@ import re
 from typing import Match, Optional
 
 from plapperkastenserver import htmltemplate
+from plapperkastenserver import config as plkconfig
 from plapperkastenserver.httprequesthandler import HTTPRequestHandler
 from plapperkastenserver.request import Request
 from plapperkastenserver.response import Response
 from plapperkastenserver.exceptions import HTTPError
-
-HOSTNAME = "localhost"
-PORT = 8080
-
 
 class SimpleTemplatePage(htmltemplate.HTMLTemplate):
     """A demo page."""
