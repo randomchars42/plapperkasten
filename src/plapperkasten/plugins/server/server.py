@@ -8,7 +8,7 @@ import multiprocessing
 import os
 import pathlib
 from plapperkastenserver import plapperkastenserver
-from plapperkastenserver import config as plkconfig
+from plapperkastenserver import config as plkserverconfig
 import queue
 import signal
 
@@ -81,7 +81,7 @@ class Server(plugin.Plugin):
 
     def on_before_run(self) -> None:
         """Create a process for the server to run."""
-        cfg: plkconfig.Config = plkconfig.Config()
+        cfg: plkserverconfig.Config = plkserverconfig.Config()
 
         self._server = plapperkastenserver.PlapperkastenServer(
                 (self._hostname, self._port), plkserver.RequestHandler)
