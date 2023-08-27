@@ -1,6 +1,6 @@
 [project]
 name = 'plapperkasten'
-version = '0.7.2'
+version = '0.7.3'
 description = ''
 readme = 'README.md'
 requires-python = '>=3.9'
@@ -61,7 +61,7 @@ where = ['src']
 #where = ['src', 'src/plapperkasten/plugins']
 
 [tool.setuptools.package-data]
-"*" = ['*.md', '*.yaml', '*.map', '*.wav', 'attribution']
+"*" = ['*.md', '*.yaml', '*.map', '*.wav', 'attribution', '*.html', '*.ico']
 
 [tool.mypy]
 # add .venv to the mypy path to detect imported packages installed by
