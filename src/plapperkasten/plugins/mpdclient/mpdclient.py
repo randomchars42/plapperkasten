@@ -68,6 +68,8 @@ class Mpdclient(plugin.Plugin):
         self.register_for('load_source')
         self.register_for('toggle')
         self.register_for('play')
+        self.register_for('pause')
+        self.register_for('resume')
         self.register_for('stop')
         self.register_for('next')
         self.register_for('previous')
@@ -453,6 +455,61 @@ class Mpdclient(plugin.Plugin):
 
         self.check_mpd(save=True, force=True)
 
+    def on_pause(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Pauses / resumes playing.
+
+        Args:
+            values: Values attached to the event (ignored).
+            params: Parameters attached to the event (ignored).
+        """
+
+        if not self.check_mpd(save=False, force=False):
+            return
+
+        try:
+            if self._status.state == 'play':
+                # this is not very well documented but empirically seems to
+                # pause mpd
+                self._mpdclient.pause('1')
+        except mpd.CommandError as error:
+            self.on_error(f'could not toggle ("{error}")')
+            return
+        except mpd.base.ConnectionError:
+            self.on_connection_error()
+            return
+
+        self.check_mpd(save=True, force=True)
+
+    def on_resume(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Pauses / resumes playing.
+
+        Args:
+            values: Values attached to the event (ignored).
+            params: Parameters attached to the event (ignored).
+        """
+
+        if not self.check_mpd(save=False, force=False):
+            return
+
+        try:
+            if self._status.state == 'stop':
+                # edge case
+                # playlist stopped at end of list
+                self._mpdclient.seek('0', '0')
+                self._mpdclient.play('0')
+            else:
+                self._mpdclient.pause('0')
+        except mpd.CommandError as error:
+            self.on_error(f'could not toggle ("{error}")')
+            return
+        except mpd.base.ConnectionError:
+            self.on_connection_error()
+            return
+
+        self.check_mpd(save=True, force=True)
+
     def on_toggle(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
         """Pauses / resumes playing.
@@ -473,6 +530,7 @@ class Mpdclient(plugin.Plugin):
             elif self._status.state == 'stop':
                 # edge case
                 # playlist stopped at end of list
+                self._mpdclient.seek('0', '0')
                 self._mpdclient.play('0')
             else:
                 self._mpdclient.pause('0')
