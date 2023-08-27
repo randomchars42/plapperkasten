@@ -23,7 +23,7 @@ dependencies = [
     'pyyaml~=6.0',
     'evdev~=1.4.0',
     'python-mpd2~=3.0.5',
-    'plapperkastenserver~=0.2.0'
+    'plapperkastenserver~=0.3.0'
 ]
 
 [project.optional-dependencies]
