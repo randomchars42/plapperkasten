@@ -58,7 +58,7 @@ class Espeak(plugin.Plugin):
         self._format_locale = config.get_str('plugins',
                                              'espeak',
                                              'format-locale',
-                                             default='en_Us')
+                                             default='en_US')
         self._format_time = config.get_str('plugins',
                                            'espeak',
                                            'format-time',
