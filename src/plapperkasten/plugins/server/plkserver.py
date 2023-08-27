@@ -1,25 +1,51 @@
 """Server for ."""
 
 import http
+import multiprocessing
 import pathlib
-import re
-
-from typing import Match, Optional
-
+from plapperkastenserver import plapperkastenserver
 from plapperkastenserver import htmltemplate
-from plapperkastenserver import config as plkconfig
+from plapperkastenserver import config as plkserverconfig
 from plapperkastenserver.httprequesthandler import HTTPRequestHandler
 from plapperkastenserver.request import Request
 from plapperkastenserver.response import Response
 from plapperkastenserver.exceptions import HTTPError
+import queue
+import re
+
+from typing import Match, Optional
+
+from plapperkasten import event as plkevent
 
 class SimpleTemplatePage(htmltemplate.HTMLTemplate):
     """A demo page."""
-    def __init__(self, config: plkconfig.Config, template: str) -> None:
+    def __init__(self, config: plkserverconfig.Config, template: str) -> None:
         # pylint: disable=too-many-arguments
         """Contructor."""
         super().__init__(config)
         self.set_template_file(template)
+
+class Server(plapperkastenserver.PlapperkastenServer):
+
+    def init(self, config: plkserverconfig.Config,
+             queue: Optional[multiprocessing.Queue] = None) -> None:
+        self.queue: Optional[multiprocessing.Queue] = queue
+        super().init(config)
+
+    def send_to_main(self, name: str, *values: str, **params: str) -> None:
+        """Send an event to the main process.
+
+        Args:
+            name: The name of the event.
+            *values: A list of values.
+            **parameters: A dictionary of parameters.
+        """
+        try:
+            if self.queue:
+                self.queue.put_nowait(
+                    plkevent.Event(name, *values, **params))
+        except queue.Full:
+            pass
 
 class RequestHandler(HTTPRequestHandler):
     """A demo."""
@@ -28,6 +54,17 @@ class RequestHandler(HTTPRequestHandler):
         ('GET', '/playlists', 'display_playlists'),
         ('POST', '/playlists', 'load_playlist')
     ]
+
+    def __init__(self, request, client_address, server: Server) -> None:
+        # pylint: disable=super-init-not-called
+        """Initialise.
+
+        Args:
+            server_config: A basic
+        """
+        super().__init__(request=request, client_address=client_address,
+                         server=server)
+        self.server: Server
 
     def display_playlists(self,
                      request: Request,
@@ -104,4 +141,5 @@ class RequestHandler(HTTPRequestHandler):
             raise HTTPError('irregular request data',
                             http.HTTPStatus.BAD_REQUEST)
 
+        self.server.send_to_main('raw', key)
         self.display_playlists(request, response, headers_only)

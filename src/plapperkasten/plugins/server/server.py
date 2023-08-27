@@ -7,7 +7,6 @@ import http.server
 import multiprocessing
 import os
 import pathlib
-from plapperkastenserver import plapperkastenserver
 from plapperkastenserver import config as plkserverconfig
 import queue
 import signal
@@ -79,8 +78,9 @@ class Server(plugin.Plugin):
                                          'port',
                                          default=8080)
 
-        self._server: plapperkastenserver.PlapperkastenServer
+        self._server: plkserver.Server
         self._server_process: multiprocessing.Process
+        self._queue: multiprocessing.Queue
 
     def on_before_run(self) -> None:
         """Create a process for the server to run."""
@@ -88,9 +88,11 @@ class Server(plugin.Plugin):
                 path_base=pathlib.Path(__file__).parent.absolute(),
                 path_eventmap=self._path_eventmap)
 
-        self._server = plapperkastenserver.PlapperkastenServer(
+        self._queue = multiprocessing.Queue()
+
+        self._server = plkserver.Server(
                 (self._hostname, self._port), plkserver.RequestHandler)
-        self._server.init(cfg)
+        self._server.init(cfg, self._queue)
         self._server_process = multiprocessing.Process(
                 target=self._server.serve_forever)
         self._server_process.start()
