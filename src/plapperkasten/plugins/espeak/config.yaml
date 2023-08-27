@@ -16,7 +16,7 @@ plugins:
     # time zone as passed to `zoneinfo.ZoneInfo`
     # <https://github.com/python/tzdata/blob/master/src/tzdata/zones>
     format-zone-info: 'America/Los_Angeles'
-    # a h ack to get espeak to read ordinals correctly
+    # a hack to get espeak to read ordinals correctly
     ordinals: ['first', 'second', 'third', 'fourth', 'fifth', 'sixth',
       'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth',
       'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth',
