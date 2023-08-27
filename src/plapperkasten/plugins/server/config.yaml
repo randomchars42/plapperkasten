@@ -1,0 +1,10 @@
+---
+
+plugins: # use this namespace for plugin configuration
+  server:
+    # the hostname
+    # change this to the hostname of your machine or you won't be able to access
+    # the server
+    hostname: 'localhost'
+    # port
+    port: 8080
