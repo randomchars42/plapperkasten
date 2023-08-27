@@ -82,13 +82,11 @@ class Server(plugin.Plugin):
         """Create a process for the server to run."""
         cfg: plkconfig.Config = plkconfig.Config()
 
-        server: plapperkastenserver.PlapperkastenServer = \
-                plapperkastenserver.PlapperkastenServer(
-                        (self._hostname, self._port),
-                         plkserver.RequestHandler)
-        server.init(cfg)
+        self._server = plapperkastenserver.PlapperkastenServer(
+                (self._hostname, self._port), plkserver.RequestHandler)
+        self._server.init(cfg)
         self.server_process: multiprocessing.Process = multiprocessing.Process(
-                target=self._server.run_forever)
+                target=self._server.serve_forever)
 
     def on_tick(self) -> None:
         """The place to do your work.
