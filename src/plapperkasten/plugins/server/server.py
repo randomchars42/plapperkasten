@@ -77,6 +77,7 @@ class Server(plugin.Plugin):
                                          default=8080)
 
         self._server: plapperkastenserver.PlapperkastenServer
+        self._server_process: multiprocessing.Process
 
     def on_before_run(self) -> None:
         """Create a process for the server to run."""
@@ -85,8 +86,9 @@ class Server(plugin.Plugin):
         self._server = plapperkastenserver.PlapperkastenServer(
                 (self._hostname, self._port), plkserver.RequestHandler)
         self._server.init(cfg)
-        self.server_process: multiprocessing.Process = multiprocessing.Process(
+        self._server_process = multiprocessing.Process(
                 target=self._server.serve_forever)
+        self._server_process.start()
 
     def on_tick(self) -> None:
         """The place to do your work.
@@ -95,9 +97,18 @@ class Server(plugin.Plugin):
         `_tick_interval`.
         """
 
+    def on_timeout(self, signum: int, frame: object) -> None:
+        """Raises a TimeoutError."""
+        raise TimeoutError
 
     def on_after_run(self) -> None:
         """Give the plugin a chance to tidy up."""
         logger.debug('shutting down server')
-        self._server.shutdown()
+        signal.signal(signal.SIGALRM, self.on_timeout)
+        signal.alarm(5)
+        try:
+            self._server.shutdown()
+            signal.alarm(0)
+        except TimeoutError:
+            self._server_process.kill()
         logger.debug('server stopped')
