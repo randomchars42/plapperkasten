@@ -103,6 +103,15 @@ class Server(plugin.Plugin):
         Gets called in regular intervals detemined by
         `_tick_interval`.
         """
+        try:
+            event: plkevent.Event = self._queue.get(
+                True, self._tick_interval)
+            logger.debug('sending event "%s" to main', event.name)
+            self.send_to_main(event.name, *event.values, **event.params)
+        except queue.Empty:
+            pass
+        except ValueError:
+            logger.error('server holds a closed queue')
 
     def on_timeout(self, signum: int, frame: object) -> None:
         """Raises a TimeoutError."""
