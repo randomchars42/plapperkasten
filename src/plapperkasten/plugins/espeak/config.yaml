@@ -1,0 +1,18 @@
+plugins:
+  espeak:
+    # the amplitude to use (between 1 and 200)
+    amplitude: '200'
+    # the app to use (`espeak` or `espeak-ng`)
+    app: 'espeak-ng'
+    # how to output the date
+    format-date: 'Today is %B %d, %Y'
+    # how to output the date
+    format-day: 'Today is %A'
+    # how to output the time
+    format-time: 'It is %H:%M'
+    # locale for `strftime()`
+    format-locale: 'en_US'
+    # the voice to use (must be installed)
+    voice: 'en'
+    # pitch of the voice between 1 and 99
+    pitch: '50'
