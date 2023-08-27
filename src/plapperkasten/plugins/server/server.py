@@ -29,6 +29,7 @@ class Server(plugin.Plugin):
 
     Attributes:
         _hostname: The hostname to use.
+        _path_eventmap: The path to the events.map.
         _port: The prot to use.
         _server: The server object.
         _server_process: The process the server runs in.
@@ -56,15 +57,17 @@ class Server(plugin.Plugin):
             config: The configuration.
         """
 
-        self._user_directory: str = config.get_str('core',
-                                                   'paths',
-                                                   'user_directory',
-                                                   default='~')
+        user_directory: str = config.get_str('core',
+                                             'paths',
+                                             'user_directory',
+                                             default='~')
 
-        self._delimiter: str = config.get_str('core',
-                                              'mapping',
-                                              'delimiter',
-                                              default='|')
+        eventmap: str = config.get_str('core',
+                                       'paths',
+                                       'eventmap',
+                                        default='events.map')
+
+        self._path_eventmap: str = f'{user_directory}/{eventmap}'
 
         self._hostname: str = config.get_str('plugins',
                                              'server',
@@ -81,7 +84,9 @@ class Server(plugin.Plugin):
 
     def on_before_run(self) -> None:
         """Create a process for the server to run."""
-        cfg: plkserverconfig.Config = plkserverconfig.Config()
+        cfg: plkserverconfig.Config = plkserverconfig.Config(
+                path_base=pathlib.Path(__file__).parent.absolute(),
+                path_eventmap=self._path_eventmap)
 
         self._server = plapperkastenserver.PlapperkastenServer(
                 (self._hostname, self._port), plkserver.RequestHandler)

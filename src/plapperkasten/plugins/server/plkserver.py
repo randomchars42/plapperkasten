@@ -44,7 +44,7 @@ class RequestHandler(HTTPRequestHandler):
             response.set_status(http.HTTPStatus.OK)
             return
 
-        path: str = '/data/eike/Config/plapperkasten/events.map'
+        path: str = self.config.custom['path_eventmap']
         lines: list[str] = pathlib.Path(path).read_text('utf-8').splitlines()
 
         buttons: str = '<ul>'
@@ -62,7 +62,7 @@ class RequestHandler(HTTPRequestHandler):
 
         template: SimpleTemplatePage = SimpleTemplatePage(
                     self.config,
-                    template='display_resources.html')
+                    template='display_playlists.html')
         template.variables['buttonlist'] = buttons
         response.set_body(template.compile())
 
