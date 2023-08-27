@@ -44,8 +44,9 @@ class RequestHandler(HTTPRequestHandler):
             response.set_status(http.HTTPStatus.OK)
             return
 
-        path: str = self.config.custom['path_eventmap']
-        lines: list[str] = pathlib.Path(path).read_text('utf-8').splitlines()
+        path: pathlib.Path = pathlib.Path(
+                self.config.custom['path_eventmap']).expanduser().resolve()
+        lines: list[str] = path.read_text('utf-8').splitlines()
 
         buttons: str = '<ul>'
 
