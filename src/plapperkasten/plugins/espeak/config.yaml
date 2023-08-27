@@ -5,18 +5,26 @@ plugins:
     # the app to use (`espeak` or `espeak-ng`)
     app: 'espeak-ng'
     # how to output the date
-    format-date: 'Today is %B %d, %Y'
+    format-date: 'Today is $A, %B the $day, %Y'
     # how to output the date
     format-day: 'Today is %A'
     # how to output the time
-    format-time: 'It is %H:%M'
+    format-time: 'It is %-H:%-M'
     # locale for `strftime()` (see `locale -a` for available locales on your
     # system)
     format-locale: 'en_US.utf8'
     # time zone as passed to `zoneinfo.ZoneInfo`
     # <https://github.com/python/tzdata/blob/master/src/tzdata/zones>
     format-zone-info: 'America/Los_Angeles'
-    # the voice to use (must be installed)
-    voice: 'en'
+    # a h ack to get espeak to read ordinals correctly
+    ordinals: ['first', 'second', 'third', 'fourth', 'fifth', 'sixth',
+      'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth',
+      'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth',
+      'eighteenth', 'nineteenth', 'twentieth', 'twenty-first', 'twenty-second',
+      'twenty-third', 'twenty-fourth', 'twenty-fifth', 'twenty-sixth',
+      'twenty-seventh', 'twenty-eighth', 'twenty-ninth', 'thirtieth',
+      'thirty-first']
     # pitch of the voice between 1 and 99
     pitch: '50'
+    # the voice to use (must be installed)
+    voice: 'en'

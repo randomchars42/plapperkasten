@@ -4,6 +4,7 @@
 
 import datetime
 import locale
+import string
 import subprocess
 import zoneinfo
 
@@ -25,6 +26,7 @@ class Espeak(plugin.Plugin):
         _format_locale: Locale for `strftime()`.
         _format_time: How to output the time.
         _format_zone_info: Timezone info.
+        _ordinals: A hack to get espeak to read ordinals correctly.
         _pitch: The pith to use.
         _voice: The voice to use.
     """
@@ -68,6 +70,10 @@ class Espeak(plugin.Plugin):
                                                 'espeak',
                                                 'format-zone-info',
                                                 default='America/Los_Angeles')
+        self._ordinals = config.get_list_str('plugins',
+                                             'espeak',
+                                             'ordinals',
+                                             default=[])
         self._pitch = config.get_str('plugins',
                                      'espeak',
                                      'pitch',
@@ -99,9 +105,14 @@ class Espeak(plugin.Plugin):
             *values: Values attached to the event (ignored).
             **params: Parameters attached to the event (ignored).
         """
-        self.say(datetime.datetime.now(
-            zoneinfo.ZoneInfo(self._format_zone_info)).strftime(
-                self._format_date))
+        date: datetime.datetime = datetime.datetime.now(
+                zoneinfo.ZoneInfo(self._format_zone_info))
+        day: int = int(date.strftime('%-d'))
+
+        date_template: str = date.strftime(self._format_date)
+        date_template = string.Template(date_template).safe_substitute(
+                day=self.number_to_ordinal_word(day))
+        self.say(date_template)
 
     def on_say_day(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -126,6 +137,16 @@ class Espeak(plugin.Plugin):
         self.say(datetime.datetime.now(
             zoneinfo.ZoneInfo(self._format_zone_info)).strftime(
                 self._format_time))
+
+    def number_to_ordinal_word(self, number: int) -> str:
+        """Convert a number to an ordinal word.
+
+        Args:
+            number: The number to convert to its ordinal.
+        """
+        if len(self._ordinals) < number:
+            return ''
+        return self._ordinals[number - 1]
 
     def say(self, text: str):
         """Say something.
