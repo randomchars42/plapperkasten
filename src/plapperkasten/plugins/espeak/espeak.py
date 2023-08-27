@@ -4,7 +4,6 @@
 
 import datetime
 import locale
-import pkg_resources
 import subprocess
 
 from plapperkasten import config as plkconfig
@@ -58,7 +57,7 @@ class Espeak(plugin.Plugin):
         self._format_locale = config.get_str('plugins',
                                              'espeak',
                                              'format-locale',
-                                             default='en_US')
+                                             default='en_US.utf8')
         self._format_time = config.get_str('plugins',
                                            'espeak',
                                            'format-time',
@@ -71,7 +70,7 @@ class Espeak(plugin.Plugin):
                                      'espeak',
                                      'voice',
                                      default='en')
-        locale.setlocale(locale.LC_TIME, self._format_locale)
+        locale.setlocale(locale.LC_TIME, f'{self._format_locale}')
 
     def on_say(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument

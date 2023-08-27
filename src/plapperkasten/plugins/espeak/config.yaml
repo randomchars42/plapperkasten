@@ -10,8 +10,9 @@ plugins:
     format-day: 'Today is %A'
     # how to output the time
     format-time: 'It is %H:%M'
-    # locale for `strftime()`
-    format-locale: 'en_US'
+    # locale for `strftime()` (see `locale -a` for available locales on your
+    # system)
+    format-locale: 'en_US.utf8'
     # the voice to use (must be installed)
     voice: 'en'
     # pitch of the voice between 1 and 99
