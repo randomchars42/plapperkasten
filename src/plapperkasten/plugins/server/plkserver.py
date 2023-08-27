@@ -26,7 +26,7 @@ class RequestHandler(HTTPRequestHandler):
     rules = [
         ('GET', '/answer/{answer}', 'check_answer'),
         ('GET', '/playlists', 'display_playlists'),
-        ('POST', '/playlist', 'load_playlist')
+        ('POST', '/playlists', 'load_playlist')
     ]
 
     def display_playlists(self,
