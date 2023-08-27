@@ -13,6 +13,9 @@ plugins:
     # locale for `strftime()` (see `locale -a` for available locales on your
     # system)
     format-locale: 'en_US.utf8'
+    # time zone as passed to `zoneinfo.ZoneInfo`
+    # <https://github.com/python/tzdata/blob/master/src/tzdata/zones>
+    format-zone-info: 'America/Los_Angeles'
     # the voice to use (must be installed)
     voice: 'en'
     # pitch of the voice between 1 and 99

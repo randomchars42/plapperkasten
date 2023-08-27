@@ -5,6 +5,7 @@
 import datetime
 import locale
 import subprocess
+import zoneinfo
 
 from plapperkasten import config as plkconfig
 from plapperkasten import plugin
@@ -23,6 +24,7 @@ class Espeak(plugin.Plugin):
         _format_date: How to output the date.
         _format_locale: Locale for `strftime()`.
         _format_time: How to output the time.
+        _format_zone_info: Timezone info.
         _pitch: The pith to use.
         _voice: The voice to use.
     """
@@ -62,6 +64,10 @@ class Espeak(plugin.Plugin):
                                            'espeak',
                                            'format-time',
                                            default='It is %H:%M')
+        self._format_zone_info = config.get_str('plugins',
+                                                'espeak',
+                                                'format-zone-info',
+                                                default='America/Los_Angeles')
         self._pitch = config.get_str('plugins',
                                      'espeak',
                                      'pitch',
@@ -93,7 +99,9 @@ class Espeak(plugin.Plugin):
             *values: Values attached to the event (ignored).
             **params: Parameters attached to the event (ignored).
         """
-        self.say(datetime.datetime.now().strftime(self._format_date))
+        self.say(datetime.datetime.now(
+            zoneinfo.ZoneInfo(self._format_zone_info)).strftime(
+                self._format_date))
 
     def on_say_day(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -103,7 +111,9 @@ class Espeak(plugin.Plugin):
             *values: Values attached to the event (ignored).
             **params: Parameters attached to the event (ignored).
         """
-        self.say(datetime.datetime.now().strftime(self._format_day))
+        self.say(datetime.datetime.now(
+            zoneinfo.ZoneInfo(self._format_zone_info)).strftime(
+                self._format_day))
 
     def on_say_time(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -113,7 +123,9 @@ class Espeak(plugin.Plugin):
             *values: Values attached to the event (ignored).
             **params: Parameters attached to the event (ignored).
         """
-        self.say(datetime.datetime.now().strftime(self._format_time))
+        self.say(datetime.datetime.now(
+            zoneinfo.ZoneInfo(self._format_zone_info)).strftime(
+                self._format_time))
 
     def say(self, text: str):
         """Say something.
