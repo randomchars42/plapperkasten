@@ -7,8 +7,10 @@ setup:
 	pipenv install --dev
 
 build:
+dist:
 	rm -rf dist
 	pipenv run python -m build
 
-upload:
+upload: dist
 	pipenv run python -m twine upload dist/*
+	rm -rf dist
