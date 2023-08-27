@@ -104,10 +104,4 @@ class RequestHandler(HTTPRequestHandler):
             raise HTTPError('irregular request data',
                             http.HTTPStatus.BAD_REQUEST)
 
-        template: SimpleTemplatePage = SimpleTemplatePage(
-                    self.config,
-                    template='result.html')
-        template.variables = {
-                'text': f"{key} - {value}"}
-        response.set_body(template.compile())
-
+        self.display_playlists(request, response, headers_only)
