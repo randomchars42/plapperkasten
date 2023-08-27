@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "2e3b996932804351b055bc287a485b06ad4cd3014fd802fa99d19d25b9318c12"
+            "sha256": "2b4f54b83734db4eba3fe1a5bdac66ef53a847f61c08bfc0939986a90bd28a52"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -37,11 +37,11 @@
         },
         "plapperkastenserver": {
             "hashes": [
-                "sha256:d3d4378a827414ab974ec6a7b47d8bd882d1bbb130180e32c346fb89ab43880a",
-                "sha256:f33ac16d004da8e7550a0a993359be6b5729395b820f077e131b6194788db607"
+                "sha256:46db31e3e99d4cc6ebdce8f62c0badcd33211ab0ef9ce6e9ee97d3cba4f5f760",
+                "sha256:e38daaee2964515c0741f14d8ef21d2110349164eb6bf9a185c23227b4ccddf0"
             ],
             "index": "pypi",
-            "version": "==0.1.0"
+            "version": "==0.2.0"
         },
         "python-mpd2": {
             "hashes": [
