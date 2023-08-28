@@ -122,7 +122,7 @@ class RequestHandler(HTTPRequestHandler):
         if len(request.data) != 1:
             # the form consists of only submit buttons, only on button
             # can be clicked before the form is submitted
-            # -> the request should only hold on item
+            # -> the request should only hold one item
             raise HTTPError('irregular request data',
                             http.HTTPStatus.BAD_REQUEST)
 
