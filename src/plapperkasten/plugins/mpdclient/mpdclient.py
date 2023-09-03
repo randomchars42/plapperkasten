@@ -556,8 +556,8 @@ class Mpdclient(plugin.Plugin):
             return
 
         try:
-            self._mpdclient.stop()
             self._mpdclient.seek('0', '0')
+            self._mpdclient.stop()
         except mpd.CommandError as error:
             self.on_error('could not stop ("{error}")')
             return
