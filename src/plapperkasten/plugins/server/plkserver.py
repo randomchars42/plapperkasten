@@ -167,7 +167,7 @@ class RequestHandler(HTTPRequestHandler):
             controls_volume += f"<input type=\"submit\" class=\"item\" "\
                     f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
         controls_volume += '</div>'
-        controls_volume = '<div id="sound_controls_2" class="row_stretch">'
+        controls_volume += '<div id="sound_controls_2" class="row_stretch">'
         for action in [('10', '10 %'), ('20', '20 %'), ('30', '30 %'),
                        ('40', '40 %'), ('50', '50 %'), ('60', '60 %'),
                        ('70', '70 %'), ('80', '80 %'), ('90', '90 %'),
