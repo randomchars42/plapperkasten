@@ -167,6 +167,14 @@ class RequestHandler(HTTPRequestHandler):
             controls_volume += f"<input type=\"submit\" class=\"item\" "\
                     f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
         controls_volume += '</div>'
+        controls_volume = '<div id="sound_controls_2" class="row_stretch">'
+        for action in [('10', '10 %'), ('20', '20 %'), ('30', '30 %'),
+                       ('40', '40 %'), ('50', '50 %'), ('60', '60 %'),
+                       ('70', '70 %'), ('80', '80 %'), ('90', '90 %'),
+                       ('100', '100 %')]:
+            controls_volume += f"<input type=\"submit\" class=\"item\" "\
+                    f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
+        controls_volume += '</div>'
 
         controls_volume_max: str = '<div id="sound_max" class="row_stretch">'
         for action in [('10', '10 %'), ('20', '20 %'), ('30', '30 %'),
@@ -174,7 +182,7 @@ class RequestHandler(HTTPRequestHandler):
                        ('70', '70 %'), ('80', '80 %'), ('90', '90 %'),
                        ('100', '100 %')]:
             controls_volume_max += f"<input type=\"submit\" class=\"item\" "\
-                    f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
+                    f"name=\"max_{action[0]}\" value=\"{action[1]}\"/></li>"
         controls_volume_max += '</div>'
 
         controls_sounds: str = '<div id="sounds" class="row_stretch">'
@@ -315,6 +323,10 @@ class RequestHandler(HTTPRequestHandler):
             if item.name in ['10', '20', '30', '40', '50', '60', '70',
                              '80', '90', '100']:
                 self.server.send_to_main('volume_max', item.name)
+            elif item.name in ['max_10', 'max_20', 'max_30', 'max_40', 'max_50',
+                               'max_60', 'max_70', 'max_80', 'max_90',
+                               'max_100']:
+                self.server.send_to_main('volume_max', item.name.split('_')[1])
             else:
                 self.server.send_to_main(item.name)
 
