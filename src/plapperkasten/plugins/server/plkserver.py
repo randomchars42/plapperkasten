@@ -50,7 +50,8 @@ class Server(plapperkastenserver.PlapperkastenServer):
 class RequestHandler(HTTPRequestHandler):
     """A demo."""
     rules = [
-        ('GET', '/main', 'display_main'),
+        ('GET', '/{name}', 'display_main'),
+        ('GET', '/{name}/', 'display_main'),
         ('POST', '/playlist', 'load_playlist'),
         ('POST', '/action', 'load_action'),
         ('POST', '/speak', 'load_text')
