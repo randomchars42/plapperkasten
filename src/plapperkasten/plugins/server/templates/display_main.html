@@ -1,0 +1,38 @@
+<div class="tabs">
+    <input type="radio" name="tabs" id="tab_1" checked/>
+    <label for="tab_1">Actions</label>
+    <input type="radio" name="tabs" id="tab_2"/>
+    <label for="tab_2">Playlists</label>
+    <input type="radio" name="tabs" id="tab_3"/>
+    <label for="tab_3">Speak</label>
+    <div id="content_tab_1" class="content">
+        <form method="post" action="/action">
+            <h2>Player</h2>
+            $controls_player
+            <h2>Volume</h2>
+            $controls_volume
+            <h2>Max volume</h2>
+            $controls_volume_max
+            <h2>Sounds</h2>
+            $controls_sounds
+            <h2>Output</h2>
+            $controls_output
+        </form>
+    </div>
+    <div id="content_tab_2" class="content">
+        <form method="post" action="/playlist">
+            <h2>Playlists</h2>
+            $playlists
+        </form>
+    </div>
+    <div id="content_tab_3" class="content">
+        <form method="post" action="/speak">
+            <h2>Greetings</h2>
+            $greetings
+            <h2>Text blocks</h2>
+            $text_blocks
+            <h2>Tell the time</h2>
+            $time
+        </form>
+    </div>
+</div>

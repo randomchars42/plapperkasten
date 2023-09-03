@@ -8,3 +8,9 @@ plugins: # use this namespace for plugin configuration
     hostname: 'localhost'
     # port
     port: 8080
+    # filename of a text file containing greetings
+    # must be placed under the path specified in core.paths.user_directory
+    filename_espeak_greetings: 'espeak_greetings'
+    # filename of a text file containing text blocks, one per line
+    # must be placed under the path specified in core.paths.user_directory
+    filename_espeak_text_blocks: 'espeak_text_blocks'

@@ -29,6 +29,9 @@ class Server(plugin.Plugin):
     Attributes:
         _hostname: The hostname to use.
         _path_eventmap: The path to the events.map.
+        _path_espeak_greetings: The path to a file containing greetings.
+        _path_espeak_text_blocks: The path to a file containing text
+            blocks.
         _port: The prot to use.
         _server: The server object.
         _server_process: The process the server runs in.
@@ -65,8 +68,20 @@ class Server(plugin.Plugin):
                                        'paths',
                                        'eventmap',
                                         default='events.map')
-
         self._path_eventmap: str = f'{user_directory}/{eventmap}'
+
+        greetings: str = config.get_str('plugins',
+                                        'server',
+                                        'filename_espeak_greetings',
+                                         default='espeak_greetings')
+        self._path_espeak_greetings: str = f'{user_directory}/{greetings}'
+
+        text_blocks: str = config.get_str('plugins',
+                                          'server',
+                                          'filename_espeak_text_blocks',
+                                           default='espeak_text_blocks')
+        self._path_espeak_text_blocks: str = f'{user_directory}/{text_blocks}'
+
 
         self._hostname: str = config.get_str('plugins',
                                              'server',
@@ -86,7 +101,12 @@ class Server(plugin.Plugin):
         """Create a process for the server to run."""
         cfg: plkserverconfig.Config = plkserverconfig.Config(
                 path_base=pathlib.Path(__file__).parent.absolute(),
-                path_eventmap=self._path_eventmap)
+                path_eventmap=self._path_eventmap,
+                path_greetings=self._path_espeak_greetings,
+                path_text_blocks=self._path_espeak_text_blocks)
+        cfg.html_css_default.append('normalize.css')
+        #cfg.html_css_default.append('milligram.min.css')
+        cfg.html_css_default.append('style.css')
 
         self._queue = multiprocessing.Queue()
 
