@@ -134,7 +134,7 @@ class RequestHandler(HTTPRequestHandler):
         text_blocks += f"<input type=\"text\" name=\"text_block_text\" "\
                 "class=\"item\"/>"\
                 f"<input type=\"submit\" name=\"text_block_use\" "\
-                f"value=\"submit\" class=\"item\"/>"
+                f"value=\"Submit\" class=\"item\"/>"
         text_blocks += '</div>'
 
         time: str = '<div id="time" class="row_stretch">'
@@ -272,6 +272,8 @@ class RequestHandler(HTTPRequestHandler):
                                 http.HTTPStatus.BAD_REQUEST)
             if item.name.startswith('greeting'):
                 sentence = f"{item.value} {sentence}"
+            elif item.name == 'text_block_use':
+                continue
             elif item.name.startswith('text_block'):
                 sentence += item.value
 
