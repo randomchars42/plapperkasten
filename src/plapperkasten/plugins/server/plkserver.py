@@ -85,6 +85,9 @@ class RequestHandler(HTTPRequestHandler):
             response.set_status(http.HTTPStatus.OK)
             return
 
+        # ignore `name`
+        name = ''
+
         path_eventmap: str = self.config.custom['path_eventmap']
         path_text_blocks: str = self.config.custom['path_text_blocks']
         path_greetings: str = self.config.custom['path_greetings']
@@ -98,7 +101,7 @@ class RequestHandler(HTTPRequestHandler):
 
         for line in lines:
             value: str = '???'
-            name: str = line.split('|', 1)[0]
+            name = line.split('|', 1)[0]
             match: Optional[Match] = re.search(r'key=(.*\/)([^\/]*).m3u', line)
             if not match:
                 continue
