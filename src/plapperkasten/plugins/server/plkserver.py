@@ -264,7 +264,7 @@ class RequestHandler(HTTPRequestHandler):
                 continue
             if item.name in ['say_day', 'say_date', 'say_time']:
                self.server.send_to_main(item.name)
-                self.display_main(request, response, headers_only)
+               self.display_main(request, response, headers_only)
             if not re.fullmatch(r'[a-zA-Z0-9ÄÜÖäüöß \.&-_,\?]+', item.value):
                 # only accept alphanumeric characters, blanks, dashes,
                 # underscores, dots, question marks and commas
