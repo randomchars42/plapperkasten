@@ -56,6 +56,7 @@ class Soundpwwp(plugin.Plugin):
         self.register_for('volume_decrease')
         self.register_for('volume_increase')
         self.register_for('volume_max')
+        self.register_for('volume')
         self.register_for('toggle_pwwp_sink')
 
     def on_before_run(self) -> None:
@@ -90,6 +91,24 @@ class Soundpwwp(plugin.Plugin):
             params: Parameters attached to the event (ignored).
         """
         self.change_volume('-')
+
+    def on_volume(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Jumps to the previous title.
+
+        Args:
+            values: Values attached to the event. Takes the first value and
+                tries to convert it into an integer. This will become the new
+                volume.
+            params: Parameters attached to the event (ignored).
+        """
+        try:
+            self.set_volume(int(values[0]))
+        except KeyError:
+            logger.error('cannot set maximal volume, no volume provided')
+        except ValueError:
+            logger.error('cannot set maximal volume, invalid value ("%s")',
+                    str(values[0]))
 
     def on_volume_max(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
