@@ -72,7 +72,8 @@ class RequestHandler(HTTPRequestHandler):
     def display_main(self,
                      request: Request,
                      response: Response,
-                     headers_only: bool) -> None:
+                     headers_only: bool,
+                     name: str = '') -> None:
         """Display an upload form.
 
         Args:
