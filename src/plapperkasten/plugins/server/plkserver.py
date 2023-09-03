@@ -155,7 +155,7 @@ class RequestHandler(HTTPRequestHandler):
         controls_player += '</div>'
 
         controls_volume: str= '<div id="sound_controls" class="row_stretch">'
-        for action in [('volume_increase', '-'), ('volume_decrease', '+')]:
+        for action in [('volume_decrease', '-'), ('volume_increase', '+')]:
             controls_volume += f"<input type=\"submit\" class=\"item\" "\
                     f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
         controls_volume += '</div>'
