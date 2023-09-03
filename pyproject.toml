@@ -1,6 +1,6 @@
 [project]
 name = 'plapperkasten'
-version = '0.8.5'
+version = '0.8.6'
 description = ''
 readme = 'README.md'
 requires-python = '>=3.9'
