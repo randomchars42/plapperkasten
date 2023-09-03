@@ -118,6 +118,9 @@ class RequestHandler(HTTPRequestHandler):
                     f"value=\"{line}\" id=\"greeting_{n}\"/> "\
                     f"<label for=\"greeting_{n}\" class=\"item\">{line}</label>"
             n += 1
+        greetings += f"<input type=\"radio\" name=\"greeting\" "\
+                f"value=\"\" id=\"greeting_{n}\" checked/> "\
+                f"<label for=\"greeting_{n}\" class=\"item\">[ - ]</label>"
         greetings += '</div>'
 
         # build a list of text blocks for espeak
