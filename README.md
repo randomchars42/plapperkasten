@@ -44,6 +44,23 @@ be used as the bind address.
 If the configured address or hostname is not available during boot, the web
 server retries once per second for up to 60 seconds while the network starts.
 
+### Held volume buttons
+
+The standard volume pins (13 and 24) repeat every 100 ms while held. Other
+buttons keep the 300 ms repeat interval. Adjust `plugins.inputgpiod.press_pulse_intervals`
+in your configuration if your volume buttons use different pins, or override
+the values to change the repeat speed. For example:
+
+```yaml
+plugins:
+  inputgpiod:
+    press_pulse_intervals: {13: 0.1, 24: 0.1}
+```
+
+PipeWire volume steps use one capped `wpctl` command when supported; older
+WirePlumber versions retain the read-and-set behavior. Feedback sounds are
+coalesced during rapid input to avoid a backlog of delayed beeps.
+
 ## Development
 
 ### Style

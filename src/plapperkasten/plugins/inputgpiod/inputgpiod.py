@@ -41,6 +41,8 @@ class Inputgpiod(plugin.Plugin):
                                                   'inputgpiod',
                                                   'press_pulse_interval',
                                                   default=0.3)
+        pulse_intervals = config.get_dict_int_float(
+            'plugins', 'inputgpiod', 'press_pulse_intervals', default={})
 
         for pin in config.get_list_int('plugins',
                                        'inputgpiod',
@@ -64,7 +66,7 @@ class Inputgpiod(plugin.Plugin):
             self._monitor.register_pulsed_active(
                     pin,
                     callback=self.send_pulsed_press_signal,
-                    seconds=press_pulse_interval)
+                    seconds=pulse_intervals.get(pin, press_pulse_interval))
 
     def send_pulsed_press_signal(self, pin: int) -> None:
         """Send a raw event to signal a short press.

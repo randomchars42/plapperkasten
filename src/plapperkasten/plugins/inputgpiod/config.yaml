@@ -12,5 +12,7 @@ plugins:
     # the number of seconds between two pulsed "BCMNUMBER_pulsed" signals
     # on monitored pins (see above)
     press_pulse_interval: 0.3
+    # per-pin repeat intervals [seconds]; standard volume buttons repeat faster
+    press_pulse_intervals: {13: 0.1, 24: 0.1}
     # the number of seconds before a long press is assumed
     long_press_duration: 1.5

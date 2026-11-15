@@ -50,6 +50,7 @@ class Soundpwwp(plugin.Plugin):
         self._sink_ids: dict[str, str] = dict(
                 {'default': '@DEFAULT_AUDIO_SINK@'})
         self._current_sink_id: str = '@DEFAULT_AUDIO_SINK@'
+        self._supports_volume_limit: bool = False
 
         self.register_for('volume_decrease')
         self.register_for('volume_increase')
@@ -64,6 +65,7 @@ class Soundpwwp(plugin.Plugin):
         running and the object has to be copied into the process and
         havoc ensues in tidying up.
         """
+        self._supports_volume_limit = '--limit' in self.wpctl('set-volume', '--help')
         self.query_sinks()
         self.query_current_sink()
         self.set_max_volume(self._max_volume)
@@ -219,19 +221,25 @@ class Soundpwwp(plugin.Plugin):
         if step is None:
             step = self._step
 
-        volume = self.query_volume()
-
-        if direction == '-' and volume - step <= 0:
-            logger.debug('min volume reached')
-            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@', '0%')
-        elif direction == '+' and volume + step >= self._max_volume:
-            logger.debug('max volume reached (%s)', str(self._max_volume))
-            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
-                    f'{str(self._max_volume)}%')
+        if self._max_volume == 0:
+            # wpctl treats --limit 0 as unlimited; explicitly keep it muted.
+            self.set_volume(0)
+        elif self._supports_volume_limit:
+            self.wpctl('set-volume', '--limit', str(self._max_volume / 100),
+                       '@DEFAULT_AUDIO_SINK@', f'{step}%{direction}')
         else:
-            logger.debug('volume: %s%s', str(direction), str(step))
-            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
-                    f'{str(step)}%{direction}')
+            volume = self.query_volume()
+            if direction == '-' and volume - step <= 0:
+                logger.debug('min volume reached')
+                self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@', '0%')
+            elif direction == '+' and volume + step >= self._max_volume:
+                logger.debug('max volume reached (%s)', str(self._max_volume))
+                self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
+                        f'{str(self._max_volume)}%')
+            else:
+                logger.debug('volume: %s%s', str(direction), str(step))
+                self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
+                        f'{str(step)}%{direction}')
 
         self.send_to_main('beep')
 

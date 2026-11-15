@@ -5,6 +5,7 @@
 import pathlib
 import pkg_resources
 import subprocess
+import time
 
 from plapperkasten import config as plkconfig
 from plapperkasten import plugin
@@ -34,6 +35,7 @@ class Soundeffects(plugin.Plugin):
         self.register_for('error')
         self.register_for('feedback')
         self.register_for('beep')
+        self._feedback_ready: float = 0
         self._path_sounds = pathlib.Path(
             config.get_str('plugins',
                            'soundeffects',
@@ -102,6 +104,9 @@ class Soundeffects(plugin.Plugin):
             sound: The name of the sound to play (must be a valid key
             in plugins.soundeffects.sounds in config.yaml).
         """
+        if sound in ('beep', 'feedback') and time.monotonic() < self._feedback_ready:
+            return
+
         if not sound in self._sounds:
             logger.error('no such sound configured: "%s"', sound)
             return
@@ -118,3 +123,6 @@ class Soundeffects(plugin.Plugin):
                            check=True)
         except subprocess.CalledProcessError:
             logger.error('could not play sound "%s"', sound)
+        if sound in ('beep', 'feedback'):
+            # Discard feedback queued during playback instead of playing it late.
+            self._feedback_ready = time.monotonic() + 0.1
