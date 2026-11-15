@@ -105,6 +105,7 @@ class Mpdclient(plugin.Plugin):
     def on_connection_error(self) -> None:
         """Log event and mark as not connected."""
 
+        self._connected = False
         self.on_error('lost connection to MPD', False)
 
     def on_before_run(self) -> None:
@@ -119,6 +120,7 @@ class Mpdclient(plugin.Plugin):
         # the class is built using mixins and mypy cannot determine its member
         # functions
         self._mpdclient: Any = mpd.MPDClient()
+        self._connected = False
         try:
             self._mpdclient.connect(self._host, self._port)
             self._connected = True
@@ -136,8 +138,12 @@ class Mpdclient(plugin.Plugin):
         `on_EVENT` functions.
         """
 
+        if not self._connected:
+            self.on_before_run()
         if self._connected:
             try:
+                # Inactive players still need traffic to avoid MPD's idle timeout.
+                self._mpdclient.ping()
                 self.check_mpd(save=True)
             except mpd.base.ConnectionError:
                 self.on_connection_error()
