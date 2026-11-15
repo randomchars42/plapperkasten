@@ -11,3 +11,4 @@ __pycache__
 *.sw[op]
 Session.vim
 tags
+tests/test_regressions.py

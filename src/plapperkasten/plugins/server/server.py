@@ -4,15 +4,12 @@
 
 import errno
 import http.server
-import multiprocessing
 import os
 import pathlib
 from plapperkastenserver import config as plkserverconfig
-import queue
-import signal
+import threading
 
 from plapperkasten import config as plkconfig
-from plapperkasten import event as plkevent
 from plapperkasten import keymap
 from plapperkasten import plugin
 from plapperkasten.plklogging import plklogging
@@ -34,7 +31,7 @@ class Server(plugin.Plugin):
             blocks.
         _port: The prot to use.
         _server: The server object.
-        _server_process: The process the server runs in.
+        _server_thread: The thread the server runs in.
     """
 
     def on_init(self, config: plkconfig.Config) -> None:
@@ -94,11 +91,10 @@ class Server(plugin.Plugin):
                                          default=8080)
 
         self._server: plkserver.Server
-        self._server_process: multiprocessing.Process
-        self._queue: multiprocessing.Queue
+        self._server_thread: threading.Thread
 
     def on_before_run(self) -> None:
-        """Create a process for the server to run."""
+        """Serve in a thread so shutdown can signal the server instance."""
         cfg: plkserverconfig.Config = plkserverconfig.Config(
                 path_base=pathlib.Path(__file__).parent.absolute(),
                 path_eventmap=self._path_eventmap,
@@ -108,43 +104,27 @@ class Server(plugin.Plugin):
         #cfg.html_css_default.append('milligram.min.css')
         cfg.html_css_default.append('style.css')
 
-        self._queue = multiprocessing.Queue()
-
-        self._server = plkserver.Server(
-                (self._hostname, self._port), plkserver.RequestHandler)
-        self._server.init(cfg, self._queue)
-        self._server_process = multiprocessing.Process(
-                target=self._server.serve_forever)
-        self._server_process.start()
-
-    def on_tick(self) -> None:
-        """The place to do your work.
-
-        Gets called in regular intervals detemined by
-        `_tick_interval`.
-        """
         try:
-            event: plkevent.Event = self._queue.get(
-                True, self._tick_interval)
-            logger.debug('sending event "%s" to main', event.name)
-            self.send_to_main(event.name, *event.values, **event.params)
-        except queue.Empty:
-            pass
-        except ValueError:
-            logger.error('server holds a closed queue')
-
-    def on_timeout(self, signum: int, frame: object) -> None:
-        """Raises a TimeoutError."""
-        raise TimeoutError
+            self._server = plkserver.Server(
+                    (self._hostname, self._port), plkserver.RequestHandler)
+        except OSError as error:
+            raise RuntimeError(
+                f'Could not start web server on {self._hostname}:{self._port}: '
+                f'{error}. The bind address must belong to this device; '
+                'use 0.0.0.0 for LAN access or 127.0.0.1 for local access.') from error
+        self._server.init(cfg, self._from_plugin)
+        self._server_thread = threading.Thread(
+                target=self._server.serve_forever, daemon=True)
+        self._server_thread.start()
+        logger.info('web server listening on %s:%s',
+                    *self._server.server_address)
 
     def on_after_run(self) -> None:
         """Give the plugin a chance to tidy up."""
         logger.debug('shutting down server')
-        signal.signal(signal.SIGALRM, self.on_timeout)
-        signal.alarm(5)
-        try:
+        if hasattr(self, '_server_thread') and self._server_thread.is_alive():
             self._server.shutdown()
-            signal.alarm(0)
-        except TimeoutError:
-            self._server_process.kill()
+            self._server_thread.join(timeout=5)
+        if hasattr(self, '_server'):
+            self._server.server_close()
         logger.debug('server stopped')

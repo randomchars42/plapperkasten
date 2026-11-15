@@ -23,6 +23,24 @@ This is based on the idea of the [PhonieBox](https://www.phoniebox.de) (["origin
 
 Please see <https://github.com/randomchars42/plapperkasten-setup> for detailed instructions and an easy installer.
 
+### Web interface
+
+The web server listens on port `8080`. Its `hostname` setting is the address
+to bind on the device running Plapperkasten. For access from other devices on
+your local network, add this to `~/.config/plapperkasten/config.yaml`:
+
+```yaml
+plugins:
+  server:
+    hostname: '0.0.0.0'
+    port: 8080
+```
+
+Then open [http://plapperkasten1:8080](http://plapperkasten1:8080), or use the
+Pi's current name or IP address. Keep `hostname: '127.0.0.1'` for access only
+from the device itself. A hostname that resolves to another computer cannot
+be used as the bind address.
+
 ## Development
 
 ### Style

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Configuration of the application."""
 
+import copy
 import yaml
 import pathlib
 import pkg_resources
@@ -43,7 +44,7 @@ class Config():
             yet?
     """
 
-    def __init__(self) -> None:
+    def __init__(self, user_directory: str = '') -> None:
         """Initialise variables and load config from file(s).
         """
 
@@ -52,15 +53,18 @@ class Config():
         self._config_input: dict[str, Any] = {}
         self._config_active: dict[str, Any] = {}
         self._consolidated = True
-        self.load()
+        self.load(user_directory)
 
-    def load(self) -> None:
+    def load(self, user_directory: str = '') -> None:
         """Try to load config.yaml from several locations."""
 
         # load from APPLICATION_PATH/settings/config.ini
         path: pathlib.Path = pathlib.Path(
             pkg_resources.resource_filename(__name__, 'settings/config.yaml'))
         self.load_from_path(path, 'default')
+        if user_directory:
+            self.set_str('core', 'paths', 'user_directory',
+                         value=user_directory, target='input')
         # load from user directory
         path = pathlib.Path(
             self.get_str('core', 'paths', 'user_directory', default=''),
@@ -81,16 +85,19 @@ class Config():
 
         try:
             with open(path, 'r', encoding='utf-8') as configfile:
+                data = yaml.safe_load(configfile)
+                if data is None:
+                    data = {}
+                if not isinstance(data, dict):
+                    logger.error('configuration at %s must be a mapping', path)
+                    return
 
                 if target == 'user':
-                    self.merge_dicts(self._config_user,
-                                     yaml.safe_load(configfile))
+                    self.merge_dicts(self._config_user, data)
                 elif target == 'input':
-                    self.merge_dicts(self._config_input,
-                                     yaml.safe_load(configfile))
+                    self.merge_dicts(self._config_input, data)
                 else:
-                    self.merge_dicts(self._config_default,
-                                     yaml.safe_load(configfile))
+                    self.merge_dicts(self._config_default, data)
             self._consolidated = False
         except yaml.YAMLError:
             logger.debug('error while parsing %s', str(path))
@@ -140,20 +147,10 @@ class Config():
         if path is None:
             path = []
         for key in b:
-            if key in a:
-                if isinstance(a[key], dict) and isinstance(b[key], dict):
-                    self.merge_dicts(a[key], b[key], path + [str(key)])
-                elif a[key] == b[key]:
-                    pass  # same leaf value
-                elif hasattr(b[key], 'copy'):
-                    a[key] = b[key].copy()
-                else:
-                    a[key] = b[key]
+            if key in a and isinstance(a[key], dict) and isinstance(b[key], dict):
+                self.merge_dicts(a[key], b[key], path + [str(key)])
             else:
-                if hasattr(b[key], 'copy'):
-                    a[key] = b[key].copy()
-                else:
-                    a[key] = b[key]
+                a[key] = copy.deepcopy(b[key])
         return a
 
     def _get_last_branch(self, *path: str, config_part: dict) -> dict:
@@ -225,7 +222,7 @@ class Config():
         else:
             try:
                 value = convert(last_branch[path[-1]])
-            except ValueError:
+            except (TypeError, ValueError):
                 logger.error('value for "%s" could not be converted',
                              '.'.join(path))
 
@@ -245,7 +242,7 @@ class Config():
 
     def get_bool(self, *path: str, default: bool) -> bool:
         """Return the configuration or default, see Config.get()."""
-        return self._get(*path, default=default, convert=bool)
+        return self._get(*path, default=default, convert=self._convert_bool)
 
     def get_list_int(self, *path: str, default: list[int]) -> list[int]:
         """Return the configuration or default, see Config.get()."""
@@ -269,7 +266,7 @@ class Config():
         """Return the configuration or default, see Config.get()."""
         return self._get(*path,
                          default=default,
-                         convert=lambda l: self._convert_list(l, bool)).copy()
+                         convert=lambda l: self._convert_list(l, self._convert_bool)).copy()
 
     def get_dict_int_int(self, *path: str,
                          default: dict[int, int]) -> dict[int, int]:
@@ -301,7 +298,7 @@ class Config():
         return self._get(
             *path,
             default=default,
-            convert=lambda d: self._convert_dict(d, int, bool)).copy()
+            convert=lambda d: self._convert_dict(d, int, self._convert_bool)).copy()
 
     def get_dict_str_int(self, *path: str,
                          default: dict[str, int]) -> dict[str, int]:
@@ -333,7 +330,7 @@ class Config():
         return self._get(
             *path,
             default=default,
-            convert=lambda d: self._convert_dict(d, str, bool)).copy()
+            convert=lambda d: self._convert_dict(d, str, self._convert_bool)).copy()
 
     def _set(self,
              *path,
@@ -385,7 +382,7 @@ class Config():
 
     def set_bool(self, *path: str, value: bool, target: str = 'default'):
         """Set the value for a config path, see Config.set()."""
-        self._set(*path, value=value, convert=bool, target=target)
+        self._set(*path, value=value, convert=self._convert_bool, target=target)
 
     def set_list_int(self,
                      *path: str,
@@ -424,7 +421,7 @@ class Config():
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
                   value=value,
-                  convert=lambda l: self._convert_list(l, bool),
+                  convert=lambda l: self._convert_list(l, self._convert_bool),
                   target=target)
 
     def set_dict_int_int(self,
@@ -464,7 +461,7 @@ class Config():
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
                   value=value,
-                  convert=lambda d: self._convert_dict(d, int, bool),
+                  convert=lambda d: self._convert_dict(d, int, self._convert_bool),
                   target=target)
 
     def set_dict_str_int(self,
@@ -504,8 +501,19 @@ class Config():
         """Set the value for a config path, see Config.set()."""
         self._set(*path,
                   value=value,
-                  convert=lambda d: self._convert_dict(d, str, bool),
+                  convert=lambda d: self._convert_dict(d, str, self._convert_bool),
                   target=target)
+
+    @staticmethod
+    def _convert_bool(value: Any) -> bool:
+        """Convert booleans, including values supplied as CLI strings."""
+        if isinstance(value, str):
+            if value.strip().lower() in ('true', 'yes', 'on', '1'):
+                return True
+            if value.strip().lower() in ('false', 'no', 'off', '0'):
+                return False
+            raise ValueError('Invalid boolean value.')
+        return bool(value)
 
     def _convert_list(self, convert_from: list[T],
                       convert: Callable[[T], U]) -> list[U]:

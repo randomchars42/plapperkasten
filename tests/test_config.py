@@ -15,7 +15,7 @@ class TestConfig(unittest.TestCase):
 
     def test_get(self):
         self.assertRaises(ValueError,
-                          self.config.get,
+                          self.config.get_str,
                           'core',
                           'paths',
                           default='a')  # path too short

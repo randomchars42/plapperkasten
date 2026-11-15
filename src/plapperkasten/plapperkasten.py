@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 """Plapperkasten."""
 
 import argparse
@@ -65,32 +65,40 @@ class Plapperkasten:
         self._busy_processes: int = 0
         self._terminate_signal: bool = False
         self._shutdown_signal: bool = False
+        self._plugins: list[plkplugin.Plugin] = []
 
         self.start_logging()
 
-        logger.debug('this is plapperkasten running with pid %s', os.getpid())
+        try:
+            logger.debug('this is plapperkasten running with pid %s', os.getpid())
+            passthrough_events = config.get_list_str(
+                'core', 'events', 'passthrough', default=[])
+            self.load_plugins(config)
+            self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
 
-        passthrough_events: list[str] = config.get_list_str('core',
-                                                            'events',
-                                                            'passthrough',
-                                                            default=[])
+            for plugin in self._plugins:
+                logger.debug('starting process %s', plugin.get_name())
+                plugin.start()
 
-        self._plugins: list[plkplugin.Plugin] = []
+            self.emit('finished_loading')
+            self.all_idle()
 
-        self.load_plugins(config)
-
-        for plugin in self._plugins:
-            logger.debug('starting process %s', plugin.get_name())
-            plugin.start()
-
-        self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
-
-        self.emit('finished_loading')
-
-        self.all_idle()
-
-        if len(self._plugins) > 0:
-            while not self._terminate_signal:
+            while self._plugins and not self._terminate_signal:
+                for plugin in self._plugins[:]:
+                    if plugin.exitcode not in (None, 0):
+                        logger.error('plugin %s exited with status %s',
+                                     plugin.get_name(), plugin.exitcode)
+                        name = plugin.get_name().lower()
+                        self.unregister_from_all(name)
+                        self.delete_queue_to_plugin(name)
+                        plugin.join(timeout=0)
+                        self._plugins.remove(plugin)
+                        if not self._plugins:
+                            raise RuntimeError(
+                                f'Plugin {plugin.get_name()} exited with status '
+                                f'{plugin.exitcode}.')
+                if not any(plugin.is_alive() for plugin in self._plugins):
+                    break
                 try:
                     event: plkevent.Event = self._queue_from_plugins.get(
                         True, 0.1)
@@ -100,20 +108,31 @@ class Plapperkasten:
                     pass
                 except ValueError:
                     logger.error('queue from plugins closed')
-
-        logger.debug('exited main loop')
-
-        for plugin in self._plugins:
-            plugin.join()
-
-        logger.debug('all plugin processes stopped')
-
-        self.stop_logging()
-        self._logger.join()
+                    break
+        finally:
+            self.emit('terminate')
+            for plugin in self._plugins:
+                self.stop_process(plugin)
+            self.stop_logging()
+            self.stop_process(self._logger)
 
         self.shutdown(
             config.get_int('core', 'system', 'shutdown_time', default=1),
             config.get_bool('core', 'system', 'debug', default=False))
+
+    @staticmethod
+    def stop_process(process: multiprocessing.Process) -> None:
+        """Allow cleanup, then terminate or kill a process that is stuck."""
+        if process.pid is None:
+            return
+        process.join(timeout=5)
+        if process.is_alive():
+            logger.error('terminating unresponsive process %s', process.name)
+            process.terminate()
+            process.join(timeout=1)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=1)
 
     def load_plugins(self, config: plkconfig.Config) -> None:
         """Triggers a (re-)scan of the plugin directories.
@@ -274,7 +293,9 @@ class Plapperkasten:
             return
 
         if to_whom in self._queues_to_plugins:
-            del self._queues_to_plugins[to_whom]
+            plugin_queue = self._queues_to_plugins.pop(to_whom)
+            plugin_queue.cancel_join_thread()
+            plugin_queue.close()
 
         else:
             logger.error('no queue to plugin %s', to_whom)
@@ -518,6 +539,9 @@ class Plapperkasten:
         new: bool = False
 
         if event.name == 'raw':
+            if not event.values:
+                logger.error('raw event has no value')
+                return
             event = self._eventmap.get_event(event.values[0])
             new = True
 
@@ -585,8 +609,6 @@ class Plapperkasten:
 def main() -> None:
     """Reads cli arguments and runs the main loop."""
 
-    config = plkconfig.Config()
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-o',
@@ -614,17 +636,7 @@ def main() -> None:
                         default=0)
 
     args = parser.parse_args()
-
-    levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
-    # there are only levels 0 to 3
-    # everything else will cause the index to be out of bounds
-    verbosity_level: int = min(args.verbosity, 3)
-    if config.get_bool('core', 'system', 'debug', default=False):
-        verbosity_level = 3
-    root_logger: plklogging.PlkLogger = plklogging.get_logger()
-    root_logger.setLevel(levels[verbosity_level])
-    if levels[args.verbosity] == 'DEBUG':
-        config.set_bool('core', 'system', 'debug', value=True, target='input')
+    config = plkconfig.Config(args.user_dir)
 
     if not args.options == '':
         for option in args.options.split('@@'):
@@ -633,12 +645,18 @@ def main() -> None:
                 value: str = ''
                 rest, value = option.split('=', 1)
                 path: list[str] = rest.split('.')
-                config.set_str(*path, value=value)
+                config.set_str(*path, value=value, target='input')
             except ValueError:
                 logger.error('did not understand option "%s"', option)
 
-    if not args.user_dir == '':
-        config.set_str('core', 'paths', 'user_directory', value=args.user_dir)
+    levels: list[str] = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
+    verbosity_level: int = min(args.verbosity, 3)
+    if config.get_bool('core', 'system', 'debug', default=False):
+        verbosity_level = 3
+    root_logger: plklogging.PlkLogger = plklogging.get_logger()
+    root_logger.setLevel(levels[verbosity_level])
+    if args.verbosity >= 3:
+        config.set_bool('core', 'system', 'debug', value=True, target='input')
 
     plapperkasten: Plapperkasten = Plapperkasten()
     plapperkasten.run(config)

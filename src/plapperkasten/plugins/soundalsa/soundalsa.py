@@ -21,7 +21,6 @@ class Soundalsa(plugin.Plugin):
     Attributes:
         _volume_max: The maximal volume.
         _volume_step: The step by which to increase / decrease the volume.
-        _volume_current: The current volume.
         _card: Index of the soundcard to use (may be changed dynamically).
         _controls: Mapping which control to expect for which card.
         _profiles: Dictionary of ALSA profiles. Each profile name (key)
@@ -63,7 +62,6 @@ class Soundalsa(plugin.Plugin):
                                                   'default_profile',
                                                   default='default')
         self._current_profile: str = self._default_profile
-        self._volume_current: int = 0
 
         self.register_for('volume_decrease')
         self.register_for('volume_increase')
@@ -113,7 +111,7 @@ class Soundalsa(plugin.Plugin):
         """
         try:
             self.set_max_volume(int(values[0]))
-        except KeyError:
+        except IndexError:
             logger.error('cannot set maximal volume, no volume provided')
         except ValueError:
             logger.error('cannot set maximal volume, invalid value ("%s")',
@@ -131,7 +129,7 @@ class Soundalsa(plugin.Plugin):
             volume = 0
         logger.debug('setting max volume to %s', str(volume))
         self._volume_max = volume
-        if self._volume_current > volume:
+        if self.query_volume() > volume:
             self.set_volume(volume)
 
     def amixer(self, *args: str) -> str:
@@ -195,22 +193,17 @@ class Soundalsa(plugin.Plugin):
         Args:
             volume:  An integer between 0 and 100.
         """
-        result: str = ''
         if volume >= self._volume_max:
             logger.debug('max volume reached (%s)', str(self._volume_max))
-            result = self.amixer('set', self.get_control(),
+            self.amixer('set', self.get_control(),
                     f'{str(self._volume_max)}%')
         elif volume <= 0:
             logger.debug('min volume reached')
-            result = self.amixer('set', self.get_control(), '0%')
+            self.amixer('set', self.get_control(), '0%')
         else:
             logger.debug('setting volume to %s', str(volume))
-            result = self.amixer('set', self.get_control(), f'{str(volume)}%')
+            self.amixer('set', self.get_control(), f'{str(volume)}%')
 
-        if result == '':
-            logger.error('could not change volume')
-
-        self._volume_current = self.query_volume()
 
     def change_volume(self, direction: str, step: Optional[int] = None):
         """Increment / decrement the volume.
@@ -231,20 +224,16 @@ class Soundalsa(plugin.Plugin):
 
         if direction == '-' and volume - step <= 0:
             logger.debug('min volume reached')
-            result = self.amixer('set', self.get_control(), '0%')
+            self.amixer('set', self.get_control(), '0%')
         elif direction == '+' and volume + step >= self._volume_max:
             logger.debug('max volume reached (%s)', str(self._volume_max))
-            result = self.amixer('set', self.get_control(),
+            self.amixer('set', self.get_control(),
                     f'{str(self._volume_max)}%')
         else:
             logger.debug('volume: %s%s', str(direction), str(step))
-            result = self.amixer('set', self.get_control(),
+            self.amixer('set', self.get_control(),
                     f'{str(step)}%{direction}')
 
-        if result == '':
-            logger.error('could not change volume')
-
-        self._volume_current = self.query_volume()
         self.send_to_main('feedback')
 
     def on_toggle_alsa_profile(self, *values: str, **params: str) -> None:

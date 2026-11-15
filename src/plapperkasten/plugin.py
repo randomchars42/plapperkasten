@@ -4,6 +4,7 @@
 import multiprocessing
 import queue
 import signal
+import time
 
 from plapperkasten import config as plkconfig
 from plapperkasten import event as plkevent
@@ -167,35 +168,40 @@ class Plugin(multiprocessing.Process):
     def run(self) -> None:
         """Gets called when the process for the plugin is started.
 
-        Will call `on_tick` every `_tick_interval` seconds and then
-        wait for any event emitted by the main process.
+        Calls `on_tick` every `_tick_interval` seconds while responding
+        immediately to events emitted by the main process.
 
         If an event is recieved the corresponding `on_EVENT` method is
         called.
         """
         logger.debug('%s running', self.get_name())
 
-        signal.signal(signal.SIGINT, lambda signal_num, frame: ...)#self.on_interrupt)
-        signal.signal(signal.SIGTERM, lambda signal_num, frame: ...)#self.on_interrupt)
+        signal.signal(signal.SIGINT, self.on_interrupt)
+        signal.signal(signal.SIGTERM, self.on_interrupt)
 
-        self.on_before_run()
-
-        while not self._terminate_signal:
-            self.on_tick()
-            try:
-                event: plkevent.Event = self._to_plugin.get(
-                    True, self._tick_interval)
-                if hasattr(self, 'on_' + event.name):
-                    getattr(self, 'on_' + event.name)(*event.values,
-                                                      **event.params)
-                else:
-                    logger.error('no method for event %s defined by %s',
-                                 event.name, self.get_name())
-            except queue.Empty:
-                pass
-            except ValueError:
-                logger.error('%s holds a closed queue', self.get_name())
-        self.on_after_run()
+        try:
+            self.on_before_run()
+            next_tick = time.monotonic() + self._tick_interval
+            while not self._terminate_signal:
+                try:
+                    event: plkevent.Event = self._to_plugin.get(
+                        True, max(0, next_tick - time.monotonic()))
+                    if hasattr(self, 'on_' + event.name):
+                        getattr(self, 'on_' + event.name)(*event.values,
+                                                          **event.params)
+                    else:
+                        logger.error('no method for event %s defined by %s',
+                                     event.name, self.get_name())
+                except queue.Empty:
+                    pass
+                except ValueError:
+                    logger.error('%s holds a closed queue', self.get_name())
+                    break
+                if not self._terminate_signal and time.monotonic() >= next_tick:
+                    self.on_tick()
+                    next_tick = time.monotonic() + self._tick_interval
+        finally:
+            self.on_after_run()
         logger.debug('%s exited main loop', self.get_name())
 
     def on_before_run(self) -> None:

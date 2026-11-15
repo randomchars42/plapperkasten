@@ -68,6 +68,13 @@ class RequestHandler(HTTPRequestHandler):
                          server=server)
         self.server: Server
 
+    @staticmethod
+    def read_optional_lines(filename: str) -> list[str]:
+        """Missing playlist and speech files leave their controls empty."""
+        try:
+            return pathlib.Path(filename).expanduser().read_text('utf-8').splitlines()
+        except FileNotFoundError:
+            return []
 
     def display_main(self,
                      request: Request,
@@ -94,8 +101,7 @@ class RequestHandler(HTTPRequestHandler):
 
         # build a list of mpdclient playlists from in events.map
 
-        path: pathlib.Path = pathlib.Path(path_eventmap).expanduser().resolve()
-        lines: list[str] = path.read_text('utf-8').splitlines()
+        lines = self.read_optional_lines(path_eventmap)
 
         playlists: str = '<div id="playlists" class="cards">'
 
@@ -112,8 +118,7 @@ class RequestHandler(HTTPRequestHandler):
 
         # build a list of greetings for espeak
 
-        path = pathlib.Path(path_greetings).expanduser().resolve()
-        lines = path.read_text('utf-8').splitlines()
+        lines = self.read_optional_lines(path_greetings)
 
         greetings: str = '<div id="greetings" class="stretch">'
         n: int = 0
@@ -130,8 +135,7 @@ class RequestHandler(HTTPRequestHandler):
 
         # build a list of text blocks for espeak
 
-        path = pathlib.Path(path_text_blocks).expanduser().resolve()
-        lines = path.read_text('utf-8').splitlines()
+        lines = self.read_optional_lines(path_text_blocks)
 
         text_blocks: str = '<div id="text_blocks" class="stretch">'
         n = 0
@@ -311,9 +315,8 @@ class RequestHandler(HTTPRequestHandler):
             response.set_status(http.HTTPStatus.OK)
             return
 
-        if not 0 < len(request.data) < 4:
-            # the request may hold a greeting, may hold a text block
-            # and the data from the submit button
+        if len(request.data) != 1:
+            # Only the clicked submit button belongs in an action request.
             raise HTTPError('irregular request data',
                             http.HTTPStatus.BAD_REQUEST)
 
@@ -327,7 +330,11 @@ class RequestHandler(HTTPRequestHandler):
                                'max_60', 'max_70', 'max_80', 'max_90',
                                'max_100']:
                 self.server.send_to_main('volume_max', item.name.split('_')[1])
-            else:
+            elif item.name in ('previous', 'play', 'pause', 'stop', 'next',
+                               'volume_decrease', 'volume_increase', 'error',
+                               'feedback', 'beep', 'toggle_pwwp_sink'):
                 self.server.send_to_main(item.name)
+            else:
+                raise HTTPError('unknown action', http.HTTPStatus.BAD_REQUEST)
 
         self.display_main(request, response, headers_only)

@@ -21,7 +21,6 @@ class Soundpwwp(plugin.Plugin):
     Attributes:
         _max_volume: The maximal volume.
         _step: The step by which to increase / decrease the volume.
-        _volume_current: The current volume.
         _default_sink: The sink to select at startup ('node.name')
         _sink_ids: Mapping between sink name ('node.name' in Pipewire) and its
             (dynamic) ID which is needed to control the volume or reroute the
@@ -51,7 +50,6 @@ class Soundpwwp(plugin.Plugin):
         self._sink_ids: dict[str, str] = dict(
                 {'default': '@DEFAULT_AUDIO_SINK@'})
         self._current_sink_id: str = '@DEFAULT_AUDIO_SINK@'
-        self._current_volume: int = 0
 
         self.register_for('volume_decrease')
         self.register_for('volume_increase')
@@ -104,7 +102,7 @@ class Soundpwwp(plugin.Plugin):
         """
         try:
             self.set_volume(int(values[0]))
-        except KeyError:
+        except IndexError:
             logger.error('cannot set maximal volume, no volume provided')
         except ValueError:
             logger.error('cannot set maximal volume, invalid value ("%s")',
@@ -122,7 +120,7 @@ class Soundpwwp(plugin.Plugin):
         """
         try:
             self.set_max_volume(int(values[0]))
-        except KeyError:
+        except IndexError:
             logger.error('cannot set maximal volume, no volume provided')
         except ValueError:
             logger.error('cannot set maximal volume, invalid value ("%s")',
@@ -140,7 +138,7 @@ class Soundpwwp(plugin.Plugin):
             volume = 0
         logger.debug('setting max volume to %s', str(volume))
         self._max_volume = volume
-        if self._current_volume > volume:
+        if self.query_volume() > volume:
             self.set_volume(volume)
 
     def wpctl(self, *args: str) -> str:
@@ -193,23 +191,18 @@ class Soundpwwp(plugin.Plugin):
         Args:
             volume:  An integer between 0 and 100.
         """
-        result: str = ''
         if volume >= self._max_volume:
             logger.debug('max volume reached (%s)', str(self._max_volume))
-            result = self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
+            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
                     f'{str(self._max_volume)}%')
         elif volume <= 0:
             logger.debug('min volume reached')
-            result = self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@', '0%')
+            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@', '0%')
         else:
             logger.debug('setting volume to %s', str(volume))
-            result = self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
+            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
                     f'{str(volume)}%')
 
-        if result == '':
-            logger.error('could not change volume')
-
-        self._volume_current = self.query_volume()
 
     def change_volume(self, direction: str, step: Optional[int] = None) -> None:
         """Increment / decrement the volume.
@@ -230,20 +223,16 @@ class Soundpwwp(plugin.Plugin):
 
         if direction == '-' and volume - step <= 0:
             logger.debug('min volume reached')
-            result = self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@', '0%')
+            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@', '0%')
         elif direction == '+' and volume + step >= self._max_volume:
             logger.debug('max volume reached (%s)', str(self._max_volume))
-            result = self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
+            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
                     f'{str(self._max_volume)}%')
         else:
             logger.debug('volume: %s%s', str(direction), str(step))
-            result = self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
+            self.wpctl('set-volume', '@DEFAULT_AUDIO_SINK@',
                     f'{str(step)}%{direction}')
 
-        if result == '':
-            logger.error('could not change volume')
-
-        self._volume_current = self.query_volume()
         self.send_to_main('beep')
 
     def on_toggle_pwwp_sink(self, *values: str, **params: str) -> None:

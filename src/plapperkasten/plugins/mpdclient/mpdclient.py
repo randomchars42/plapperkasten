@@ -77,8 +77,8 @@ class Mpdclient(plugin.Plugin):
     def reset_to_default(self) -> None:
         """Reset members to default, either on startup or on error."""
         self._active: bool = False
-        self._last_save: int = 0
-        self._last_check: int = 0
+        self._last_save: float = 0
+        self._last_check: float = 0
         self._last_check_result: bool = False
 
     def on_error(self, message: str, stop: bool = True) -> None:
@@ -147,6 +147,7 @@ class Mpdclient(plugin.Plugin):
         super().on_after_run()
         if self._connected:
             try:
+                self.check_mpd(save=True, force=True)
                 self._mpdclient.stop()
                 self._mpdclient.close()
                 self._mpdclient.disconnect()
@@ -163,6 +164,10 @@ class Mpdclient(plugin.Plugin):
                 `use` and `key` are used.
         """
 
+        if not all(x in params for x in ('use', 'key')):
+            self.on_error('malformed load_source event')
+            return
+
         if not params['use'] == self.get_name():
             # event meant for another plugin
             # we try to be nice and stop
@@ -170,6 +175,7 @@ class Mpdclient(plugin.Plugin):
             if not self.check_mpd(save=False, force=False):
                 return
 
+            self.check_mpd(save=True, force=True)
             try:
                 self._mpdclient.stop()
             except mpd.CommandError as error:
@@ -179,8 +185,6 @@ class Mpdclient(plugin.Plugin):
                 self.on_connection_error()
                 return
 
-            # save position
-            self.check_mpd(save=True, force=True)
             # and hand over
             # we are not busy (anymore)
             self.send_idle()
@@ -189,11 +193,8 @@ class Mpdclient(plugin.Plugin):
             self._active = False
             return
 
-        # we established that this event is meant for us so we check its
-        # integrity
-        if not all(x in params for x in ('use', 'key')):
-            self.on_error('malformed load_source event')
-            return
+        if self._active:
+            self.check_mpd(save=True, force=True)
 
         # create a playlist from the resource and play it
         status: statusmap.Status = self._statusmap.get_status(params['key'])
@@ -223,7 +224,7 @@ class Mpdclient(plugin.Plugin):
         # be busy
         self.send_busy()
 
-        if not self.check_mpd(save=True):
+        if not self.check_mpd(save=True, force=True):
             self._active = False
             self.send_idle()
 
@@ -368,9 +369,12 @@ class Mpdclient(plugin.Plugin):
 
         logger.debug('start checking mpd')
         logger.debug('last check: ' + str(self._last_check))
-        logger.debug('now: ' + str(time.time()))
+        now = time.monotonic()
+        logger.debug('now: %s', now)
 
-        if not force and time.time() < self._last_check + 0.5:
+        if (not force and self._active and self._connected and
+                now < self._last_check + 0.5 and
+                (not save or now <= self._last_save + self._save_min_interval)):
             # the last check was less than 500 ms ago
             logger.debug('no need for further checking')
             logger.debug('returning %s', self._last_check_result)
@@ -413,14 +417,15 @@ class Mpdclient(plugin.Plugin):
 
         self._status = status
         self._last_check_result = True
-        self._last_check = int(time.time())
+        self._last_check = time.monotonic()
 
-        if save and (force or
-                     time.time() > self._last_save + self._save_min_interval):
+        if save and (force or time.monotonic() >
+                     self._last_save + self._save_min_interval):
             # save the status to file so the user may resume in the event of an
             # unexpected interruption, e.g., an empty battery
             logger.debug('saving status')
             self._statusmap.update_status(self._status)
+            self._last_save = time.monotonic()
 
         if self._status.state == 'play':
             logger.debug('status: playing')
@@ -453,7 +458,7 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
     def on_pause(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -479,7 +484,7 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
     def on_resume(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -508,7 +513,7 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
     def on_toggle(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -541,7 +546,7 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
     def on_stop(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -565,7 +570,7 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
     def on_next(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -588,7 +593,7 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
     def on_previous(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -611,5 +616,5 @@ class Mpdclient(plugin.Plugin):
             self.on_connection_error()
             return
 
-        self.check_mpd(save=True, force=True)
+        self.check_mpd(save=False, force=True)
 
