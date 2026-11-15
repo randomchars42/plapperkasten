@@ -7,7 +7,9 @@ import http.server
 import os
 import pathlib
 from plapperkastenserver import config as plkserverconfig
+import socket
 import threading
+import time
 
 from plapperkasten import config as plkconfig
 from plapperkasten import keymap
@@ -104,14 +106,26 @@ class Server(plugin.Plugin):
         #cfg.html_css_default.append('milligram.min.css')
         cfg.html_css_default.append('style.css')
 
-        try:
-            self._server = plkserver.Server(
-                    (self._hostname, self._port), plkserver.RequestHandler)
-        except OSError as error:
-            raise RuntimeError(
-                f'Could not start web server on {self._hostname}:{self._port}: '
-                f'{error}. The bind address must belong to this device; '
-                'use 0.0.0.0 for LAN access or 127.0.0.1 for local access.') from error
+        retry_until = time.monotonic() + 60
+        while not self._terminate_signal:
+            try:
+                self._server = plkserver.Server(
+                        (self._hostname, self._port), plkserver.RequestHandler)
+                break
+            except OSError as error:
+                if (error.errno in (errno.EADDRNOTAVAIL, socket.EAI_AGAIN,
+                                   socket.EAI_NONAME) and
+                        time.monotonic() < retry_until):
+                    logger.warning('waiting for web bind address %s:%s: %s',
+                                   self._hostname, self._port, error)
+                    time.sleep(1)
+                    continue
+                raise RuntimeError(
+                    f'Could not start web server on {self._hostname}:{self._port}: '
+                    f'{error}. The bind address must belong to this device; '
+                    'use 0.0.0.0 for LAN access or 127.0.0.1 for local access.') from error
+        else:
+            return
         self._server.init(cfg, self._from_plugin)
         self._server_thread = threading.Thread(
                 target=self._server.serve_forever, daemon=True)

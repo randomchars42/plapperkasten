@@ -41,6 +41,9 @@ Pi's current name or IP address. Keep `hostname: '127.0.0.1'` for access only
 from the device itself. A hostname that resolves to another computer cannot
 be used as the bind address.
 
+If the configured address or hostname is not available during boot, the web
+server retries once per second for up to 60 seconds while the network starts.
+
 ## Development
 
 ### Style
