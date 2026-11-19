@@ -4,7 +4,7 @@
 import copy
 import yaml
 import pathlib
-import pkg_resources
+from importlib.resources import files
 
 from typing import Any, Callable, Optional, TypeVar
 
@@ -59,8 +59,8 @@ class Config():
         """Try to load config.yaml from several locations."""
 
         # load from APPLICATION_PATH/settings/config.ini
-        path: pathlib.Path = pathlib.Path(
-            pkg_resources.resource_filename(__name__, 'settings/config.yaml'))
+        path: pathlib.Path = pathlib.Path(str(
+            files('plapperkasten').joinpath('settings/config.yaml')))
         self.load_from_path(path, 'default')
         if user_directory:
             self.set_str('core', 'paths', 'user_directory',

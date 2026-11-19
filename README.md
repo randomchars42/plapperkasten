@@ -61,6 +61,14 @@ PipeWire volume steps use one capped `wpctl` command when supported; older
 WirePlumber versions retain the read-and-set behavior. Feedback sounds are
 coalesced during rapid input to avoid a backlog of delayed beeps.
 
+### Bookworm and Trixie
+
+The GPIO extra requires gpiodmonitor 1.4, which supports the distro libgpiod
+1.x and 2.x bindings without changing button configuration. Use a fresh
+virtual environment with `--system-site-packages` under the distro Python.
+See [the setup instructions](https://github.com/randomchars42/plapperkasten-setup)
+for selecting the matching WirePlumber volume configuration and power-off hook.
+
 ## Development
 
 ### Style

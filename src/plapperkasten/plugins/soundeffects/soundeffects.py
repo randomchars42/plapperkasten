@@ -3,7 +3,7 @@
 """
 
 import pathlib
-import pkg_resources
+from importlib.resources import files
 import subprocess
 import time
 
@@ -41,8 +41,7 @@ class Soundeffects(plugin.Plugin):
             config.get_str('plugins',
                            'soundeffects',
                            'path',
-                           default=pkg_resources.resource_filename(
-                               __name__, 'sounds')))
+                           default=str(files(__package__).joinpath('sounds'))))
         self._sounds: dict[str, str] = config.get_dict_str_str('plugins',
                                                                'soundeffects',
                                                                'sounds',

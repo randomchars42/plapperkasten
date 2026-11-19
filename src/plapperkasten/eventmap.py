@@ -2,7 +2,7 @@
 """Map events."""
 
 import pathlib
-import pkg_resources
+from importlib.resources import files
 
 from plapperkasten import config as plkconfig
 from plapperkasten import event
@@ -57,9 +57,8 @@ class EventMap(keymap.KeyMap):
         """(Re-)read the mapping files."""
         # load from APPLICATION_PATH/settings/events.map
         self._load(
-            pathlib.Path(
-                pkg_resources.resource_filename(__name__,
-                                                'settings/events.map')))
+            pathlib.Path(str(
+                files('plapperkasten').joinpath('settings/events.map'))))
         # load from USER_DIR/events.map
         self._load(self.get_path_user_map())
 

@@ -7,7 +7,7 @@ import logging
 import multiprocessing
 import os
 import pathlib
-import pkg_resources
+from importlib.resources import files
 import queue
 import signal
 import sys
@@ -153,13 +153,8 @@ class Plapperkasten:
         """
 
         self._load_plugins(
-            pathlib.Path(
-                pkg_resources.resource_filename(
-                    __name__,
-                    config.get_str('core',
-                                   'paths',
-                                   'plugins',
-                                   default='plugins'))),
+            pathlib.Path(str(files('plapperkasten').joinpath(
+                config.get_str('core', 'paths', 'plugins', default='plugins')))),
             config.get_list_str('core', 'plugins', 'blacklist', default=[]),
             config)
 
