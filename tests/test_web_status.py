@@ -1,6 +1,7 @@
 """Checks for web shutdown controls and RFID status across the event bus."""
 
 import http.client
+from html.parser import HTMLParser
 import json
 from pathlib import Path
 import queue
@@ -8,6 +9,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+from urllib.parse import urlencode
 
 import evdev
 
@@ -226,6 +228,48 @@ class WebStatusTests(unittest.TestCase):
         self.relay_events()
         self.assertEqual(player.get_nowait().name, 'play')
         self.assertEqual(self.status()['last_rfid_card'], '00222')
+
+    def test_playlist_button_escapes_long_titles_and_submits_the_mapping_id(self):
+        title = 'Die drei ??? – Ein langes Abenteuer & "Freunde" <Band 1>'
+        source = f'Music/{title}.m3u'
+        Path(self.directory.name, 'events.map').write_text(
+            f'00017|load_source|use=Mpdclient|key={source}\n', encoding='utf-8')
+        self.core._eventmap = EventMap(self.config)
+        player = queue.Queue()
+        self.core._queues_to_plugins['player'] = player
+        self.core.register('load_source', 'player')
+
+        class PlaylistButton(HTMLParser):
+            attributes = None
+            text = ''
+            inside = False
+
+            def handle_starttag(self, tag, attributes):
+                attributes = dict(attributes)
+                if tag == 'button' and attributes.get('name') == '00017':
+                    self.attributes = attributes
+                    self.inside = True
+
+            def handle_endtag(self, tag):
+                if tag == 'button':
+                    self.inside = False
+
+            def handle_data(self, data):
+                if self.inside:
+                    self.text += data
+
+        status, _, page = self.request('GET', '/main?tab=playlists')
+        self.assertEqual(status, 200)
+        self.assertNotIn('<Band 1>', page)
+        button = PlaylistButton()
+        button.feed(page)
+        self.assertEqual(button.text, title)
+        self.assertEqual(button.attributes['type'], 'submit')
+        body = urlencode({button.attributes['name']: button.attributes['value']})
+        self.assertEqual(self.request('POST', '/playlist', body)[0], 200)
+        self.relay_events()
+        event = player.get_nowait()
+        self.assertEqual(event.params, {'use': 'Mpdclient', 'key': source})
 
     def test_card_text_is_escaped_and_status_poll_does_not_change_state(self):
         self.server.on_rfid_read('<script>alert(1)</script>')

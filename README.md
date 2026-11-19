@@ -44,6 +44,12 @@ be used as the bind address.
 If the configured address or hostname is not available during boot, the web
 server retries once per second for up to 60 seconds while the network starts.
 
+The interface uses system fonts and controls with a minimum font size of 16px
+to avoid the usual iPhone input-focus zoom. Buttons have at least 44px touch
+targets, playlist titles wrap onto multiple lines, and percentage controls use
+a compact grid. The layout adapts to phone widths without a frontend framework
+or additional dependencies. Normal browser zoom remains available.
+
 ### Spotify playlists
 
 The **Playlists** tab can play a pasted Spotify playlist link and save named

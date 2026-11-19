@@ -2,72 +2,149 @@
     box-sizing: border-box;
 }
 
-.device_status {
-    width: 80%;
+body {
+    margin: 0;
+    color: #172033;
+    background: #ffffff;
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.45;
+}
+
+input, button, select, textarea {
+    font: inherit;
+    font-size: 16px;
+    font-size: max(16px, 1rem);
+}
+
+.device_status, .tabs {
+    width: calc(100% - 2rem);
+    max-width: 64rem;
     margin: 1rem auto;
 }
 
-#last_rfid_card {
+#last_rfid_card, #spotify_track, #spotify_error {
     overflow-wrap: anywhere;
 }
 
+h2, h3 {
+    line-height: 1.25;
+}
+
+form {
+    margin: 0 0 1.5rem;
+}
+
+button, input[type=submit], input[type=button], input[type=reset],
+.stretch label.item {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #b8c3d1;
+    border-radius: 0.45rem;
+    color: #172033;
+    background: #f5f7fa;
+    white-space: normal;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+button:active:enabled, input[type=submit]:active:enabled {
+    background: #e1e8f0;
+}
+
 input[type=submit]:disabled, button:disabled {
-    color: #777777;
+    color: #667085;
+    background: #f1f3f6;
+    opacity: 1;
     cursor: default;
 }
 
-.tabs {
-    list-style: none;
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: flex-start;
-}
-.tabs:after {
-    content: '';
-    display: table;
-    clear: both;
-}
-.tabs > input[type=radio] {
-    display: none;
-}
-.tabs > label {
-    display: inline-block;
-    min-width: 25%;
-    flex: 1 1 25%;
-    color: #AAAAAA;
-    text-align: center;
-    cursor: pointer;
-    -webkit-transition: all 0.5s; /* Safari 3.1 to 6.0 */
-    transition: all 0.5s;
-}
-.tabs > input[type=radio]:checked + label {
-    color: #333333;
-}
-.content {
-    display: none;
-    width: 80%;
-    margin: 0 auto;
-    box-sizing: border-box;
-    background-color:#ffffff;
-    margin-top: 2rem;
-    -webkit-animation: scale 0.2s ease-in-out;
-    -moz-animation: scale 0.2s ease-in-out;
-    animation: scale 0.2s ease-in-out;
+input[type=text], input[type=url], input[type=search], select, textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0.6rem;
+    margin-bottom: 1rem;
+    border: 1px solid #8d9bb0;
+    border-radius: 0.45rem;
+    color: #172033;
+    background: #ffffff;
 }
 
-@keyframes scale {
-    0% {
-        transform: scale(0.9);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.01);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0.85rem;
+    border: 1px solid #b8c3d1;
+    border-radius: 0.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.4rem;
+    line-height: 1.4;
+}
+
+.tabs {
+    display: flex;
+    flex-flow: row wrap;
+}
+
+/* Keep the CSS-only radios accessible to keyboards and screen readers. */
+.tabs > input[type=radio], .stretch input[type=radio] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.tabs > label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.65rem 0.25rem;
+    margin: 0;
+    border-bottom: 3px solid transparent;
+    color: #526074;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.tabs > input[type=radio]:checked + label {
+    border-bottom-color: #1d4ed8;
+    color: #1e429f;
+    background: #edf3ff;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, .tabs > input:focus-visible + label,
+.stretch input:focus-visible + label {
+    outline: 3px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.content {
+    display: none;
+    width: 100%;
+    min-width: 0;
+    margin-top: 1.25rem;
+    padding-bottom: 1rem;
 }
 
 #tab_1:checked ~ #content_tab_1,
@@ -76,91 +153,66 @@ input[type=submit]:disabled, button:disabled {
     display: block;
 }
 
-input[type=submit], label {
-    white-space: normal;
-    height: 2rem;
-    vertical-align: middle;
-}
-
-label {
-    line-height: 2rem;
-}
-
 .cards {
-    display: inline-flex;
-    flex-flow: row wrap;
-    justify-content: flex-start;
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 0.65rem;
 }
 
 .cards .item {
-    color: #333333;
-    background-color: #FFFFFF;
-    text-align: center;
-    flex-basis: 33%;
-    height: 4rem;
-}
-
-@media (max-width: 40rem) {
-    .cards .item {
-        flex-basis: 100%;
-    }
+    min-height: 4rem;
+    text-align: left;
+    overflow-wrap: anywhere;
 }
 
 .row_stretch {
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: flex-start;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.5rem;
 }
 
-.row_stretch .item {
-    color: #333333;
-    background-color: #FFFFFF;
-    text-align: center;
-    flex: 1;
+#player_controls {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
 }
 
-@media (max-width: 40rem) {
-    .row_stretch .item {
-        flex-basis: 100%;
+#player_controls .item {
+    padding-inline: 0.35rem;
+}
+
+#sound_controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 0.5rem;
+}
+
+#sound_controls_2, #sound_max {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+#sound_controls_2 .item, #sound_max .item {
+    padding-inline: 0.15rem;
+}
+
+@media (max-width: 22rem) {
+    #sound_controls_2, #sound_max {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
-.stretch {
-}
-
-.stretch input[type=radio] {
-    display: none;
-}
-
-input[type=radio]:checked + label.item {
-    border-style: solid;
-    border-width: 1px;
-}
-
 .stretch .item {
-    display: inline-block;
-    color: #333333;
-    background-color: #FFFFFF;
     width: 100%;
+    margin-bottom: 0.5rem;
     text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.stretch input[type=radio]:checked + label.item {
+    border-color: #1d4ed8;
+    background: #edf3ff;
 }
 
 .spotify_form {
     margin: 1.5rem 0;
-}
-
-.spotify_form input[type=text] {
-    display: block;
-    width: 100%;
-    padding: 0.6rem;
-    margin-bottom: 1rem;
-}
-
-.spotify_form button, .spotify_favorite button {
-    padding: 0.6rem;
-    min-height: 2.5rem;
-    cursor: pointer;
 }
 
 .spotify_favorite {
@@ -175,6 +227,14 @@ input[type=radio]:checked + label.item {
     overflow-wrap: anywhere;
 }
 
-#spotify_error, #spotify_track {
-    overflow-wrap: anywhere;
+#spotify_error {
+    color: #9b1c1c;
+}
+
+#spotify_track {
+    font-weight: 600;
+}
+
+#spotify p[role=status]:empty, #spotify_track:empty, #spotify_error:empty {
+    display: none;
 }

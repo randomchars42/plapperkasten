@@ -139,9 +139,12 @@ class RequestHandler(HTTPRequestHandler):
             match: Optional[Match] = re.search(r'key=(.*\/)([^\/]*).m3u', line)
             if not match:
                 continue
-            value = match.group(2)
-            playlists += f"<input type=\"submit\" name=\"{name}\" "\
-                    f"value=\"{value}\" class=\"item\"/>"
+            value = html.escape(match.group(2), quote=True)
+            name = html.escape(name, quote=True)
+            # The title can wrap and contain punctuation; routing only uses
+            # the mapping key, so the submitted value stays a simple action.
+            playlists += (f'<button type="submit" name="{name}" '
+                          f'value="Play" class="item">{value}</button>')
         playlists += '</div>'
 
         # build a list of greetings for espeak
