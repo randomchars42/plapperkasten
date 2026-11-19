@@ -521,7 +521,8 @@ class Plapperkasten:
         """Process incoming events.
 
         Events named 'raw' will be looked up in the event map. All other
-        events will be emitted if allowed by config.events.passthrough.
+        events will be emitted if allowed by core.events.passthrough or
+        used by the built-in web controls and device status.
 
         Args:
             event: The event to process.
@@ -537,7 +538,11 @@ class Plapperkasten:
             if not event.values:
                 logger.error('raw event has no value')
                 return
-            event = self._eventmap.get_event(event.values[0])
+            try:
+                event = self._eventmap.get_event(event.values[0])
+            except KeyError:
+                # A new RFID card can be displayed before it has a mapping.
+                return
             new = True
 
         if event.name == '':
@@ -555,7 +560,11 @@ class Plapperkasten:
             # return
             return
 
-        if new or event.name in passthrough:
+        # Keep device status and controls working with existing user configs,
+        # whose passthrough list overrides the application defaults.
+        if new or event.name in passthrough or event.name in (
+                'autoshutdown_pause', 'autoshutdown_resume',
+                'autoshutdown_status', 'rfid_read'):
             self.emit(event.name, *event.values, **event.params)
 
     def on_busy(self, *values: str, **params: str) -> None:

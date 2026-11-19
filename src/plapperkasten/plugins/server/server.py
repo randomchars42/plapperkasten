@@ -94,6 +94,21 @@ class Server(plugin.Plugin):
 
         self._server: plkserver.Server
         self._server_thread: threading.Thread
+        self.register_for('rfid_read')
+        self.register_for('autoshutdown_status')
+
+    def on_rfid_read(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Retain complete card reads, including cards without a mapping."""
+        if values and values[0]:
+            self._server.update_status(last_rfid_card=values[0])
+
+    def on_autoshutdown_status(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Expose only the state confirmed by the autoshutdown plugin."""
+        paused = params.get('paused')
+        if paused in ('true', 'false'):
+            self._server.update_status(autoshutdown_paused=paused == 'true')
 
     def on_before_run(self) -> None:
         """Serve in a thread so shutdown can signal the server instance."""

@@ -2,6 +2,20 @@
     box-sizing: border-box;
 }
 
+.device_status {
+    width: 80%;
+    margin: 1rem auto;
+}
+
+#last_rfid_card {
+    overflow-wrap: anywhere;
+}
+
+input[type=submit]:disabled {
+    color: #777777;
+    cursor: default;
+}
+
 .tabs {
     list-style: none;
     display: flex;

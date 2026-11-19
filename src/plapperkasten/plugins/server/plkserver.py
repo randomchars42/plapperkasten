@@ -1,6 +1,8 @@
 """Server for ."""
 
 import http
+import html
+import json
 import multiprocessing
 import pathlib
 from plapperkastenserver import plapperkastenserver
@@ -12,6 +14,7 @@ from plapperkastenserver.response import Response
 from plapperkastenserver.exceptions import HTTPError
 import queue
 import re
+import threading
 
 from typing import Match, Optional
 
@@ -30,7 +33,22 @@ class Server(plapperkastenserver.PlapperkastenServer):
     def init(self, config: plkserverconfig.Config,
              queue: Optional[multiprocessing.Queue] = None) -> None:
         self.queue: Optional[multiprocessing.Queue] = queue
+        self._status_lock = threading.Lock()
+        self._status: dict[str, str | bool | None] = {
+            'last_rfid_card': None,
+            'autoshutdown_paused': None,
+        }
         super().init(config)
+
+    def update_status(self, **status: str | bool | None) -> None:
+        """Share plugin updates with the HTTP thread as one snapshot."""
+        with self._status_lock:
+            self._status.update(status)
+
+    def get_status(self) -> dict[str, str | bool | None]:
+        """Read a consistent copy without exposing the shared dictionary."""
+        with self._status_lock:
+            return self._status.copy()
 
     def send_to_main(self, name: str, *values: str, **params: str) -> None:
         """Send an event to the main process.
@@ -50,6 +68,8 @@ class Server(plapperkastenserver.PlapperkastenServer):
 class RequestHandler(HTTPRequestHandler):
     """A demo."""
     rules = [
+        ('GET', '/api/status', 'display_status'),
+        ('HEAD', '/api/status', 'display_status'),
         ('GET', '/{name}', 'display_main'),
         ('GET', '/{name}/', 'display_main'),
         ('POST', '/playlist', 'load_playlist'),
@@ -214,7 +234,30 @@ class RequestHandler(HTTPRequestHandler):
         template.variables['greetings'] = greetings
         template.variables['text_blocks'] = text_blocks
         template.variables['time'] = time
+        status = self.server.get_status()
+        paused = status['autoshutdown_paused']
+        template.variables['last_rfid_card'] = html.escape(
+            str(status['last_rfid_card'] or 'No card read yet'))
+        template.variables['autoshutdown_status'] = (
+            'Paused' if paused is True else
+            'Active' if paused is False else 'Unavailable')
+        template.variables['pause_disabled'] = '' if paused is False else 'disabled'
+        template.variables['resume_disabled'] = '' if paused is True else 'disabled'
         response.set_body(template.compile())
+
+    def display_status(self,
+                       request: Request,
+                       response: Response,
+                       headers_only: bool) -> None:
+        # pylint: disable=unused-argument
+        """Return live device state without caching an earlier card read."""
+        response.add_header('Cache-Control', 'no-store')
+        content = json.dumps(self.server.get_status())
+        response.set_body('' if headers_only else content,
+                          content_type='application/json')
+        if headers_only:
+            # Retain the GET headers, including the JSON content length.
+            response.add_header('Content-Length', str(len(content.encode('utf-8'))))
 
     def load_playlist(self,
                      request: Request,
@@ -332,7 +375,8 @@ class RequestHandler(HTTPRequestHandler):
                 self.server.send_to_main('volume_max', item.name.split('_')[1])
             elif item.name in ('previous', 'play', 'pause', 'stop', 'next',
                                'volume_decrease', 'volume_increase', 'error',
-                               'feedback', 'beep', 'toggle_pwwp_sink'):
+                               'feedback', 'beep', 'toggle_pwwp_sink',
+                               'autoshutdown_pause', 'autoshutdown_resume'):
                 self.server.send_to_main(item.name)
             else:
                 raise HTTPError('unknown action', http.HTTPStatus.BAD_REQUEST)

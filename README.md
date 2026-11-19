@@ -143,6 +143,25 @@ pipenv install --dev
 pipenv shell
 ```
 
+### Web controls and status
+
+The web interface shows the last RFID card ID and whether auto shutdown is
+active or paused. Status updates automatically every second. Card IDs retain
+leading zeros, and unassigned cards are shown without triggering an action.
+The last ID is kept in memory until the service restarts; selecting a playlist
+in the web interface does not count as reading a card.
+
+Use **Pause auto shutdown** to keep the box running while idle. The pause lasts
+until **Resume auto shutdown** is pressed or the service restarts. Resuming
+starts a fresh configured idle timeout once the box is idle. Manual shutdown
+still works while auto shutdown is paused.
+
+`GET /api/status` returns `last_rfid_card` (a string, or `null` before the first
+read) and `autoshutdown_paused` (a boolean, or `null` until the auto shutdown
+plugin reports its state). The built-in events `rfid_read`,
+`autoshutdown_pause`, `autoshutdown_resume` and `autoshutdown_status` are routed
+automatically, including with existing `core.events.passthrough` settings.
+
 ### Plapperkasten logic in a nutshell
 
 `plapperkasten` is a simple platform for plugins that can talk to each other to control a jukebox. There is a plugin recieving input from buttons (`src/plapperkasten/plugins/inputgpiod`), one recieving input from RFID readers (`src/plapperkasten/plugins/inputdevinputevent`), one for controlling an MPD client (`src/plapperkasten/plugins/mpdclient`) and so forth.

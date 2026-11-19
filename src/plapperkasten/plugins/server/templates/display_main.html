@@ -1,3 +1,7 @@
+<div class="device_status">
+    <p>Last RFID card: <code id="last_rfid_card" role="status">$last_rfid_card</code></p>
+    <p id="status_connection" role="status" hidden></p>
+</div>
 <div class="tabs">
     <input type="radio" name="tabs" id="tab_1" checked/>
     <label for="tab_1">Actions</label>
@@ -6,6 +10,17 @@
     <input type="radio" name="tabs" id="tab_3"/>
     <label for="tab_3">Speak</label>
     <div id="content_tab_1" class="content">
+        <form method="post" action="/action">
+            <h2>Auto shutdown</h2>
+            <p>Status: <span id="autoshutdown_status" role="status">$autoshutdown_status</span></p>
+            <div class="row_stretch">
+                <input type="submit" class="item" id="autoshutdown_pause"
+                       name="autoshutdown_pause" value="Pause auto shutdown" $pause_disabled/>
+                <input type="submit" class="item" id="autoshutdown_resume"
+                       name="autoshutdown_resume" value="Resume auto shutdown" $resume_disabled/>
+            </div>
+            <p>Pause lasts until resumed or the service restarts. Resume starts a fresh idle timeout.</p>
+        </form>
         <form method="post" action="/action">
             <h2>Player</h2>
             $controls_player
@@ -36,3 +51,44 @@
         </form>
     </div>
 </div>
+<script>
+(() => {
+    const card = document.getElementById('last_rfid_card');
+    const state = document.getElementById('autoshutdown_status');
+    const pause = document.getElementById('autoshutdown_pause');
+    const resume = document.getElementById('autoshutdown_resume');
+    const connection = document.getElementById('status_connection');
+    const setText = (element, text) => {
+        if (element.textContent !== text) element.textContent = text;
+    };
+
+    async function refreshStatus() {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        try {
+            const response = await fetch('/api/status', {
+                cache: 'no-store', signal: controller.signal
+            });
+            if (!response.ok) throw new Error('Status request failed');
+            const status = await response.json();
+            setText(card, status.last_rfid_card || 'No card read yet');
+            const paused = status.autoshutdown_paused;
+            setText(state, paused === true ? 'Paused' :
+                paused === false ? 'Active' : 'Unavailable');
+            pause.disabled = paused !== false;
+            resume.disabled = paused !== true;
+            connection.hidden = true;
+        } catch (error) {
+            setText(state, 'Unavailable');
+            pause.disabled = true;
+            resume.disabled = true;
+            setText(connection, 'Live status unavailable. Retrying…');
+            connection.hidden = false;
+        } finally {
+            clearTimeout(timeout);
+            setTimeout(refreshStatus, 1000);
+        }
+    }
+    refreshStatus();
+})();
+</script>

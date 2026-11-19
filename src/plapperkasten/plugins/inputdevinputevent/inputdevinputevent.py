@@ -71,6 +71,8 @@ class Inputdevinputevent(plugin.Plugin):
                         if evdev.ecodes.keys[event.code] == 'KEY_ENTER':
                             if not self._current_input[device.name] == '':
                                 self.send_to_main(
+                                    'rfid_read', self._current_input[device.name])
+                                self.send_to_main(
                                     'raw', self._current_input[device.name])
                                 self._current_input[device.name] = ''
                         else:
