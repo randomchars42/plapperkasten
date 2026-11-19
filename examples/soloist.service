@@ -1,0 +1,15 @@
+[Unit]
+Description=Spotify playback for Plapperkasten
+Wants=pipewire.service
+After=pipewire.service
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/soloist/soloist.env
+# Adjust the executable path to your Soloist installation.
+ExecStart=/usr/local/bin/soloist --device-name Plapperkasten --api-key ${SOLOIST_API_KEY} --ws 127.0.0.1:9090
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

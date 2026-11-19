@@ -16,6 +16,7 @@ from plapperkasten import keymap
 from plapperkasten import plugin
 from plapperkasten.plklogging import plklogging
 from plapperkasten.plugins.server import plkserver
+from plapperkasten.spotify_sources import favorites_path
 
 logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
@@ -91,11 +92,24 @@ class Server(plugin.Plugin):
                                          'server',
                                          'port',
                                          default=8080)
+        self._spotify_enabled = config.get_bool(
+            'plugins', 'spotify', 'enabled', default=False)
+        self._path_spotify_favorites = favorites_path(config)
 
         self._server: plkserver.Server
         self._server_thread: threading.Thread
         self.register_for('rfid_read')
         self.register_for('autoshutdown_status')
+        self.register_for('spotify_status')
+
+    def on_spotify_status(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Expose playback state confirmed by the Spotify plugin."""
+        if self._spotify_enabled:
+            self._server.update_status(
+                spotify_state=params.get('state', 'Unavailable'),
+                spotify_track=params.get('track', ''),
+                spotify_error=params.get('error', ''))
 
     def on_rfid_read(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument
@@ -116,7 +130,9 @@ class Server(plugin.Plugin):
                 path_base=pathlib.Path(__file__).parent.absolute(),
                 path_eventmap=self._path_eventmap,
                 path_greetings=self._path_espeak_greetings,
-                path_text_blocks=self._path_espeak_text_blocks)
+                path_text_blocks=self._path_espeak_text_blocks,
+                spotify_enabled='true' if self._spotify_enabled else 'false',
+                path_spotify_favorites=str(self._path_spotify_favorites))
         cfg.html_css_default.append('normalize.css')
         #cfg.html_css_default.append('milligram.min.css')
         cfg.html_css_default.append('style.css')

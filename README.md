@@ -44,6 +44,82 @@ be used as the bind address.
 If the configured address or hostname is not available during boot, the web
 server retries once per second for up to 60 seconds while the network starts.
 
+### Spotify playlists
+
+The **Playlists** tab can play a pasted Spotify playlist link and save named
+favorites. Saved playlists have **Play** and **Remove** buttons. Saving or
+removing a favorite does not interrupt playback. Saving the same name again
+updates its link. The existing player buttons, GPIO buttons and volume controls
+work with the selected playback source, including Spotify.
+
+Spotify playback uses [Spotify Soloist](https://developer.spotify.com/documentation/soloist),
+which must run separately on the same Pi. Plapperkasten does not need your
+Spotify API key, a Web API app, or an additional OAuth login.
+
+1. Download Soloist for the Pi's architecture from the
+   [official downloads page](https://developer.spotify.com/documentation/soloist/reference/downloads-and-updates)
+   and make its `soloist` executable available on `PATH` (or configure its full
+   path below). Each user needs Spotify Premium and their own
+   [Soloist API key](https://developer.spotify.com/dashboard/soloist).
+2. Start Soloist as the same Linux user that runs Plapperkasten and its PipeWire
+   session, using a private environment variable containing the key:
+
+   ```sh
+   soloist --device-name "Plapperkasten" --api-key "$SOLOIST_API_KEY" --ws 127.0.0.1:9090
+   ```
+
+   In the Spotify app on the same network, select **Plapperkasten** once to
+   pair it. Soloist keeps that session in its data directory for future starts.
+   Confirm `soloist ctl status --ws 127.0.0.1:9090` reports a logged-in session.
+   Soloist uses the default audio output; running in the same PipeWire session
+   allows Plapperkasten's existing volume/output controls to apply.
+3. Add this to `~/.config/plapperkasten/config.yaml`, merging it with any
+   existing `plugins` section, then restart Plapperkasten:
+
+   ```yaml
+   plugins:
+     spotify:
+       enabled: true
+       executable: 'soloist'  # or an absolute path to the executable
+       endpoint: '127.0.0.1:9090'
+   ```
+
+4. Open the existing web interface, select **Playlists**, and paste a full
+   `https://open.spotify.com/playlist/...` share link. Choose **Play on
+   Plapperkasten**, or enter a name and choose **Save favorite**. Spotify URI
+   values (`spotify:playlist:...`) also work. Short `spotify.link` URLs must
+   first be opened in a browser to obtain their full playlist link.
+
+Favorites are stored in `~/.config/plapperkasten/spotify_favorites.yaml` by
+default. Set `plugins.spotify.filename_favorites` to change the filename; a
+relative path is resolved against `core.paths.user_directory`. The file is a
+YAML mapping of names to playlist URIs and may also be edited while the server
+is running. Changes made in the browser survive service restarts.
+
+The page reports Soloist's confirmed playback status, current track and
+connection errors. Selecting a local playlist or scanning an MPD card pauses
+Spotify and hands the controls back to MPD. Selecting Spotify stops MPD.
+**Stop** pauses Spotify and resets the current track to its beginning. Playlist
+positions are not stored separately for each favorite.
+
+Keep Soloist's WebSocket listener on `127.0.0.1`; browsers use Plapperkasten's
+HTTP server rather than connecting to Soloist directly. Keep the API key out of
+the web page, favorites file and source repository. For unattended startup,
+an example user service is provided in [examples/soloist.service](examples/soloist.service).
+Put the key in a private `~/.config/soloist/soloist.env` file (mode `600`) as
+`SOLOIST_API_KEY=your-key`, adjust the service's executable path, and install it
+under `~/.config/systemd/user/`. Enable it with
+`systemctl --user enable --now soloist.service`. Keep the same Soloist data
+directory when switching from a manual run to the service, and stop the manual
+process first.
+
+Soloist builds expire after 90 days, so update the executable from Spotify
+regularly and restart its service. The binary and API key are not distributed
+with Plapperkasten. See Spotify's
+[setup](https://developer.spotify.com/documentation/soloist) and
+[CLI reference](https://developer.spotify.com/documentation/soloist/reference/soloist-ctl)
+for installation, pairing and updates.
+
 ### Held volume buttons
 
 The standard volume pins (13 and 24) repeat every 100 ms while held. Other

@@ -3,9 +3,9 @@
     <p id="status_connection" role="status" hidden></p>
 </div>
 <div class="tabs">
-    <input type="radio" name="tabs" id="tab_1" checked/>
+    <input type="radio" name="tabs" id="tab_1" $actions_checked/>
     <label for="tab_1">Actions</label>
-    <input type="radio" name="tabs" id="tab_2"/>
+    <input type="radio" name="tabs" id="tab_2" $playlists_checked/>
     <label for="tab_2">Playlists</label>
     <input type="radio" name="tabs" id="tab_3"/>
     <label for="tab_3">Speak</label>
@@ -35,8 +35,32 @@
         </form>
     </div>
     <div id="content_tab_2" class="content">
+        <section id="spotify">
+            <h2>Spotify</h2>
+            <p role="status">$spotify_message</p>
+            <p>Status: <span id="spotify_state" role="status">$spotify_state</span></p>
+            <p id="spotify_track">$spotify_track</p>
+            <p id="spotify_error" role="status">$spotify_error</p>
+            <h3>Saved playlists</h3>
+            <p role="status">$spotify_favorites_error</p>
+            $spotify_favorites
+            <form method="post" action="/spotify" class="spotify_form">
+                <fieldset $spotify_disabled>
+                    <legend>Choose a Spotify playlist</legend>
+                    <label for="spotify_playlist">Playlist link</label>
+                    <input type="text" id="spotify_playlist" name="playlist" required
+                           placeholder="https://open.spotify.com/playlist/…"/>
+                    <label for="spotify_name">Name for saved playlist (optional when playing)</label>
+                    <input type="text" id="spotify_name" name="name" maxlength="120"/>
+                    <div class="row_stretch">
+                        <button type="submit" name="action" value="play" class="item">Play on Plapperkasten</button>
+                        <button type="submit" name="action" value="save" class="item">Save favorite</button>
+                    </div>
+                </fieldset>
+            </form>
+        </section>
         <form method="post" action="/playlist">
-            <h2>Playlists</h2>
+            <h2>Local playlists</h2>
             $playlists
         </form>
     </div>
@@ -58,6 +82,9 @@
     const pause = document.getElementById('autoshutdown_pause');
     const resume = document.getElementById('autoshutdown_resume');
     const connection = document.getElementById('status_connection');
+    const spotifyState = document.getElementById('spotify_state');
+    const spotifyTrack = document.getElementById('spotify_track');
+    const spotifyError = document.getElementById('spotify_error');
     const setText = (element, text) => {
         if (element.textContent !== text) element.textContent = text;
     };
@@ -77,11 +104,16 @@
                 paused === false ? 'Active' : 'Unavailable');
             pause.disabled = paused !== false;
             resume.disabled = paused !== true;
+            setText(spotifyState, status.spotify_state || 'Disabled');
+            setText(spotifyTrack, status.spotify_track || '');
+            setText(spotifyError, status.spotify_error || '');
             connection.hidden = true;
         } catch (error) {
             setText(state, 'Unavailable');
             pause.disabled = true;
             resume.disabled = true;
+            setText(spotifyState, 'Unavailable');
+            setText(spotifyTrack, '');
             setText(connection, 'Live status unavailable. Retrying…');
             connection.hidden = false;
         } finally {
