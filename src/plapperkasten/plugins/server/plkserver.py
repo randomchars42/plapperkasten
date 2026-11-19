@@ -16,7 +16,7 @@ import queue
 import re
 import threading
 
-from typing import Match, Optional
+from typing import Any, Match, Optional
 
 from plapperkasten import event as plkevent
 from plapperkasten.spotify_sources import Favorites, playlist_uri
@@ -42,9 +42,14 @@ class Server(plapperkastenserver.PlapperkastenServer):
         self.spotify_enabled = config.custom.get('spotify_enabled') == 'true'
         self.spotify_favorites = Favorites(pathlib.Path(
             config.custom.get('path_spotify_favorites', 'spotify_favorites.yaml')))
+        self._spotify_queue = json.dumps({
+            'previous': [], 'current': None, 'upcoming': [], 'context': '',
+            'error': 'Waiting for the Spotify queue…',
+        })
+        self._queue_revision = 0
         if self.spotify_enabled:
             self._status.update(spotify_state='Connecting', spotify_track='',
-                                spotify_error='')
+                                spotify_error='', spotify_queue_revision='0')
         super().init(config)
 
     def update_status(self, **status: str | bool | None) -> None:
@@ -56,6 +61,23 @@ class Server(plapperkastenserver.PlapperkastenServer):
         """Read a consistent copy without exposing the shared dictionary."""
         with self._status_lock:
             return self._status.copy()
+
+    def update_spotify_queue(self, data: dict[str, Any]) -> None:
+        """Store queue data separately so status polls stay small."""
+        if (not isinstance(data.get('previous'), list) or
+                not isinstance(data.get('upcoming'), list) or
+                not isinstance(data.get('current'), (dict, type(None)))):
+            return
+        serialized = json.dumps(data)
+        with self._status_lock:
+            if serialized != self._spotify_queue:
+                self._spotify_queue = serialized
+                self._queue_revision += 1
+                self._status['spotify_queue_revision'] = str(self._queue_revision)
+
+    def get_spotify_queue(self) -> dict[str, Any]:
+        with self._status_lock:
+            return json.loads(self._spotify_queue)
 
     def send_to_main(self, name: str, *values: str, **params: str) -> None:
         """Send an event to the main process.
@@ -77,6 +99,8 @@ class RequestHandler(HTTPRequestHandler):
     rules = [
         ('GET', '/api/status', 'display_status'),
         ('HEAD', '/api/status', 'display_status'),
+        ('GET', '/spotify/queue', 'display_spotify_queue'),
+        ('HEAD', '/spotify/queue', 'display_spotify_queue'),
         ('GET', '/{name}', 'display_main'),
         ('GET', '/{name}/', 'display_main'),
         ('POST', '/playlist', 'load_playlist'),
@@ -292,11 +316,80 @@ class RequestHandler(HTTPRequestHandler):
             'saved': 'Playlist saved.',
             'removed': 'Playlist removed.',
             'requested': 'Playback requested. Check the Spotify status below.',
+            'track_requested': 'Track playback requested.',
         }
         template.variables['spotify_message'] = messages.get(str(query.get('spotify', '')), '')
         playlist_tab = query.get('tab') == 'playlists'
         template.variables['actions_checked'] = '' if playlist_tab else 'checked'
         template.variables['playlists_checked'] = 'checked' if playlist_tab else ''
+        template.variables['spotify_queue'] = self.spotify_queue_html()
+        template.variables['spotify_queue_revision'] = str(
+            status.get('spotify_queue_revision') or '0')
+        template.variables['spotify_queue_open'] = (
+            'open' if query.get('spotify') == 'track_requested' else '')
+
+    def spotify_queue_html(self) -> str:
+        """Render the same escaped fragment for initial load and live updates."""
+        if not self.server.spotify_enabled:
+            return '<p>Spotify playback is not enabled.</p>'
+        data = self.server.get_spotify_queue()
+        if data.get('error'):
+            return f'<p role="status">{html.escape(str(data["error"]))}</p>'
+        content = ''
+        if data.get('context'):
+            content += f'<p class="queue_context">{html.escape(str(data["context"]))}</p>'
+        current = data.get('current')
+        groups = [('Current track', [current] if current else []),
+                  ('Up next', data['upcoming']),
+                  ('Previously played (most recent first)', data['previous'])]
+        count = 0
+        for heading, items in groups:
+            if not items:
+                continue
+            count += len(items)
+            previous = heading.startswith('Previously')
+            if previous:
+                content += f'<details><summary>{heading} ({len(items)})</summary>'
+            else:
+                content += f'<h4>{heading} ({len(items)})</h4>'
+            content += '<ol class="spotify_queue_list">'
+            for index, item in enumerate(items, start=1):
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get('name') or 'Unknown track')
+                artist = str(item.get('artist') or '')
+                uri = str(item.get('uri') or '')
+                searchable = html.escape(f'{name} {artist}'.lower(), quote=True)
+                content += (f'<li class="spotify_queue_item" value="{index}" '
+                            f'data-search="{searchable}"><div class="spotify_queue_row">'
+                            f'<div class="spotify_queue_title">{html.escape(name)}'
+                            f'<small>{html.escape(artist)}</small></div>')
+                if re.fullmatch(r'spotify:(?:track|episode):[A-Za-z0-9]{22}', uri):
+                    content += (
+                        '<form method="post" action="/spotify">'
+                        f'<input type="hidden" name="track" value="{uri}"/>'
+                        '<button type="submit" name="action" value="track" '
+                        f'aria-label="Play track: {html.escape(name, quote=True)}">'
+                        'Play track</button></form>')
+                content += '</div></li>'
+            content += '</ol>'
+            if previous:
+                content += '</details>'
+        if not count:
+            content += '<p>No tracks are loaded. Choose a Spotify playlist first.</p>'
+        limit = data.get('limit')
+        if isinstance(limit, int) and len(data['upcoming']) >= limit:
+            content += f'<p>Showing up to {limit} upcoming tracks.</p>'
+        return content
+
+    def display_spotify_queue(self, request: Request, response: Response,
+                              headers_only: bool) -> None:
+        # pylint: disable=unused-argument
+        content = self.spotify_queue_html()
+        response.add_header('Cache-Control', 'no-store')
+        response.set_body('' if headers_only else content)
+        if headers_only:
+            response.add_header('Content-Length', str(len(content.encode('utf-8'))))
 
     def spotify_playlist(self, request: Request, response: Response,
                          headers_only: bool) -> None:
@@ -308,14 +401,31 @@ class RequestHandler(HTTPRequestHandler):
         fields: dict[str, str] = {}
         for field in request.data:
             if (field.name in fields or
-                    field.name not in ('action', 'playlist', 'name', 'favorite') or
+                    field.name not in ('action', 'playlist', 'name', 'favorite', 'track') or
                     not isinstance(field.value, str)):
                 raise HTTPError('Invalid Spotify request.', http.HTTPStatus.BAD_REQUEST)
             fields[field.name] = field.value
         action = fields.get('action')
         favorites = self.server.spotify_favorites
         try:
-            if 'favorite' in fields:
+            if action == 'track':
+                if set(fields) != {'action', 'track'}:
+                    raise ValueError('Invalid track request.')
+                uri = fields['track']
+                data = self.server.get_spotify_queue()
+                items = data['previous'] + data['upcoming']
+                if data.get('current'):
+                    items.append(data['current'])
+                if (data.get('error') or
+                        not re.fullmatch(r'spotify:(?:track|episode):[A-Za-z0-9]{22}', uri) or
+                        not any(isinstance(item, dict) and item.get('uri') == uri
+                                for item in items)):
+                    raise ValueError('This track is no longer in the loaded queue.')
+                self.server.send_to_main('load_source', use='Spotify', key=uri)
+                result = 'track_requested'
+            elif 'track' in fields:
+                raise ValueError('Invalid track request.')
+            elif 'favorite' in fields:
                 if set(fields) != {'favorite', 'action'}:
                     raise ValueError('Invalid saved playlist request.')
                 name = fields['favorite']
@@ -346,7 +456,8 @@ class RequestHandler(HTTPRequestHandler):
             raise HTTPError('Saved Spotify playlists could not be updated.',
                             http.HTTPStatus.SERVICE_UNAVAILABLE) from error
         response.set_status(http.HTTPStatus.SEE_OTHER)
-        response.add_header('Location', f'/main?tab=playlists&spotify={result}#spotify')
+        anchor = 'spotify_queue_section' if result == 'track_requested' else 'spotify'
+        response.add_header('Location', f'/main?tab=playlists&spotify={result}#{anchor}')
         response.set_body('')
 
     def display_status(self,

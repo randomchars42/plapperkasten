@@ -25,16 +25,27 @@ logging.getLogger().handlers.clear()
 PLAYLIST_ID = '37i9dQZF1DXcBWIGoYBM5M'
 URI = f'spotify:playlist:{PLAYLIST_ID}'
 LINK = f'https://open.spotify.com/playlist/{PLAYLIST_ID}?si=example'
+TRACK_URI = 'spotify:track:' + 'A' * 22
+NEXT_URI = 'spotify:track:' + 'B' * 22
 
 
 class FakeSoloist:
     """Simulate the documented CLI protocol while keeping real event routing."""
 
     def __init__(self):
+        def item(name, uri):
+            return {'uri': uri, 'entity_type': 'track', 'decorations': {
+                'identity': {'name': name},
+                'creators': [{'entity': {'decorations': {'identity': {'name': 'An artist'}}}}],
+            }}
         self.snapshot = {
             'type': 'playback_state', 'status': 'idle', 'is_active': False,
-            'item': {'decorations': {'identity': {'name': 'A song'}}},
+            'item': item('A song', TRACK_URI),
+            'context': {'uri': URI, 'decorations': {'identity': {'name': 'Bedtime songs'}}},
         }
+        self.queue = {'type': 'queue_changed', 'previous': [], 'upcoming': [
+            {'uid': 'next', 'source': 'context', 'item': item('Next song', NEXT_URI)},
+        ]}
         self.commands = []
         self.failure = None
 
@@ -53,8 +64,9 @@ class FakeSoloist:
             self.snapshot['status'] = 'playing'
         elif command[0] == 'pause':
             self.snapshot['status'] = 'paused'
-        return subprocess.CompletedProcess(
-            arguments, 0, json.dumps(self.snapshot) if command[0] == 'now' else '', '')
+        output = (json.dumps(self.snapshot) if command[0] == 'now' else
+                  json.dumps(self.queue) if command[0] == 'queue' else '')
+        return subprocess.CompletedProcess(arguments, 0, output, '')
 
 
 class FavoritesTests(unittest.TestCase):
@@ -201,6 +213,45 @@ class SpotifyTests(unittest.TestCase):
             self.plugin.on_tick()
         self.assertEqual(self.events()[-1].params['state'], 'Unavailable')
 
+    def test_queue_reports_titles_and_artists_without_polling_on_every_tick(self):
+        self.plugin.on_tick()
+        data = json.loads(next(event.params['data'] for event in self.events()
+                               if event.name == 'spotify_queue'))
+        self.assertEqual(data['current']['name'], 'A song')
+        self.assertEqual(data['upcoming'][0],
+                         {'name': 'Next song', 'artist': 'An artist', 'uri': NEXT_URI})
+        self.assertEqual(data['context'], 'Bedtime songs')
+        queue_reads = sum(command[0] == 'queue' for command in self.fake.commands)
+        self.plugin.on_tick()
+        self.assertEqual(sum(command[0] == 'queue' for command in self.fake.commands), queue_reads)
+        self.fake.snapshot['item']['uri'] = NEXT_URI
+        self.plugin.on_tick()
+        self.assertEqual(sum(command[0] == 'queue' for command in self.fake.commands), queue_reads + 1)
+
+    def test_queue_failure_does_not_stop_confirmed_playback(self):
+        self.plugin.on_load_source(use='Spotify', key=URI)
+        def run(arguments, **options):
+            if arguments[2] == 'queue':
+                raise subprocess.TimeoutExpired('soloist', 3)
+            return self.fake(arguments, **options)
+        with patch('plapperkasten.plugins.spotify.spotify.subprocess.run', run):
+            self.plugin.on_tick()
+        self.assertTrue(self.plugin.is_busy())
+        events = self.events()
+        queue = json.loads(next(event.params['data'] for event in events
+                                if event.name == 'spotify_queue'))
+        self.assertIn('unavailable', queue['error'])
+        self.assertEqual(events[-1].params['state'], 'Playing')
+
+    def test_malformed_queue_is_reported_without_crashing_playback_poll(self):
+        self.fake.queue = {'previous': 'invalid', 'upcoming': []}
+        self.plugin.on_tick()
+        events = self.events()
+        data = json.loads(next(event.params['data'] for event in events
+                               if event.name == 'spotify_queue'))
+        self.assertTrue(data['error'])
+        self.assertEqual(events[-1].params['state'], 'Ready')
+
 
 class SpotifyWebTests(unittest.TestCase):
     def setUp(self):
@@ -325,6 +376,47 @@ class SpotifyWebTests(unittest.TestCase):
         self.assertEqual(self.request('POST', '/spotify',
                                      {'action': 'play', 'playlist': URI})[0], 503)
         self.assertTrue(self.outgoing.empty())
+
+    def test_queue_fragment_and_track_selection_use_real_routing(self):
+        self.player.on_tick()
+        self.relay()
+        status, headers, fragment = self.request(path='/spotify/queue')
+        self.assertEqual(status, 200)
+        self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertIn('Next song', fragment)
+        self.assertIn('An artist', fragment)
+        self.assertIn('Play track', fragment)
+        get_headers = headers
+        status, headers, body = self.request('HEAD', '/spotify/queue')
+        self.assertEqual(status, 200)
+        self.assertEqual(body, '')
+        self.assertEqual(headers['Content-Length'], get_headers['Content-Length'])
+        state = json.loads(self.request(path='/api/status')[2])
+        self.assertIn('spotify_queue_revision', state)
+        self.assertNotIn('Next song', json.dumps(state))
+        status, headers, _ = self.request('POST', '/spotify',
+                                         {'action': 'track', 'track': NEXT_URI})
+        self.assertEqual(status, 303)
+        self.assertIn('#spotify_queue_section', headers['Location'])
+        self.relay()
+        self.assertIn(['play', NEXT_URI], self.fake.commands)
+        self.assertTrue(self.player.is_busy())
+
+    def test_queue_metadata_is_escaped_and_unknown_track_cannot_be_played(self):
+        self.fake.queue['upcoming'][0]['item']['decorations']['identity']['name'] = '<img src=x onerror="bad()">'
+        self.player.on_tick()
+        self.relay()
+        _, _, fragment = self.request(path='/spotify/queue')
+        self.assertNotIn('<img src=x', fragment)
+        self.assertIn('&lt;img src=x', fragment)
+        self.assertTrue(self.outgoing.empty())
+        for fields in ({'action': 'track', 'track': 'spotify:track:' + 'Z' * 22},
+                       {'action': 'track', 'track': NEXT_URI + '; shutdown'},
+                       {'action': 'track', 'track': NEXT_URI, 'favorite': 'Unrelated'},
+                       {'action': 'play', 'playlist': URI, 'track': NEXT_URI}):
+            with self.subTest(fields=fields):
+                self.assertEqual(self.request('POST', '/spotify', fields)[0], 400)
+                self.assertTrue(self.outgoing.empty())
 
 
 if __name__ == '__main__':

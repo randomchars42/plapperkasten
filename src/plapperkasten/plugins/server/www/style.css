@@ -238,3 +238,51 @@ textarea:focus-visible, .tabs > input:focus-visible + label,
 #spotify p[role=status]:empty, #spotify_track:empty, #spotify_error:empty {
     display: none;
 }
+
+#spotify_queue_section {
+    margin: 1.5rem 0;
+}
+
+#spotify_queue_section summary {
+    min-height: 44px;
+    padding-block: 0.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.spotify_queue_list {
+    padding-left: 1.75rem;
+}
+
+.spotify_queue_item {
+    padding-block: 0.5rem;
+    border-bottom: 1px solid #e0e5ed;
+}
+
+.spotify_queue_item[hidden] {
+    display: none;
+}
+
+.spotify_queue_row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.spotify_queue_title {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.spotify_queue_title small {
+    display: block;
+    color: #526074;
+    font-size: 0.875rem;
+}
+
+.spotify_queue_row form {
+    flex: 0 0 auto;
+    margin: 0;
+}

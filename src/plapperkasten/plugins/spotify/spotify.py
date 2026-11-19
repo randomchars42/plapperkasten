@@ -2,12 +2,13 @@
 
 import json
 import subprocess
+import time
 from typing import Any
 
 from plapperkasten import config as plkconfig
 from plapperkasten import plugin
 from plapperkasten.plklogging import plklogging
-from plapperkasten.spotify_sources import playlist_uri
+from plapperkasten.spotify_sources import playable_uri
 
 logger: plklogging.PlkLogger = plklogging.get_logger(__name__)
 
@@ -39,6 +40,13 @@ class Spotify(plugin.Plugin):
         self._state = 'idle'
         self._track = ''
         self._last_report: tuple[str, str, str] | None = None
+        self._queue_interval = max(2.0, config.get_float(
+            'plugins', 'spotify', 'interval_queue', default=10))
+        self._queue_limit = min(5000, max(1, config.get_int(
+            'plugins', 'spotify', 'queue_limit', default=1000)))
+        self._next_queue_poll = 0.0
+        self._queue_key = ('', '')
+        self._last_queue = ''
         for event in ('load_source', 'play', 'pause', 'resume', 'toggle',
                       'stop', 'next', 'previous'):
             self.register_for(event)
@@ -71,7 +79,73 @@ class Spotify(plugin.Plugin):
     def _failed(self, error: Exception) -> None:
         self._device_active = False
         self.send_idle()
+        self._publish_queue({'previous': [], 'current': None, 'upcoming': [],
+                             'context': '', 'error': 'Spotify queue unavailable.'})
+        self._next_queue_poll = 0
         self._report('Unavailable', error=str(error))
+
+    def _publish_queue(self, data: dict[str, Any]) -> None:
+        serialized = json.dumps(data)
+        if serialized != self._last_queue:
+            self.send_to_main('spotify_queue', data=serialized)
+            self._last_queue = serialized
+
+    @staticmethod
+    def _queue_item(entity: Any) -> dict[str, str] | None:
+        """Keep only display text and playable URIs from Soloist entities."""
+        if not isinstance(entity, dict):
+            return None
+        decorations = entity.get('decorations') or {}
+        if not isinstance(decorations, dict):
+            return None
+        identity = decorations.get('identity') or {}
+        name = str(identity.get('name') or '') if isinstance(identity, dict) else ''
+        uri = str(entity.get('uri') or '')
+        if not name and not uri:
+            return None
+        artists = []
+        for creator in decorations.get('creators') or []:
+            if not isinstance(creator, dict):
+                continue
+            artist = creator.get('entity') or {}
+            try:
+                artist_name = artist['decorations']['identity']['name']
+            except (KeyError, TypeError):
+                continue
+            if isinstance(artist_name, str):
+                artists.append(artist_name)
+        return {'name': name or uri, 'artist': ', '.join(artists), 'uri': uri}
+
+    def _poll_queue(self, snapshot: dict[str, Any]) -> None:
+        now = time.monotonic()
+        context = snapshot.get('context') or {}
+        current = self._queue_item(snapshot.get('item'))
+        key = (str(context.get('uri') or ''), current['uri'] if current else '')
+        if now < self._next_queue_poll and key == self._queue_key:
+            return
+        self._next_queue_poll = now + self._queue_interval
+        self._queue_key = key
+        payload: dict[str, Any] = {
+            'previous': [], 'current': current, 'upcoming': [],
+            'context': '', 'error': '', 'limit': self._queue_limit,
+        }
+        try:
+            payload['context'] = str(context.get('decorations', {}).get(
+                'identity', {}).get('name') or '')
+            queue = json.loads(self._command('queue', str(self._queue_limit), '--json'))
+            if not isinstance(queue, dict):
+                raise ValueError('Invalid queue.')
+            for group in ('previous', 'upcoming'):
+                entries = queue.get(group)
+                if not isinstance(entries, list):
+                    raise ValueError('Invalid queue entries.')
+                for entry in entries:
+                    item = self._queue_item(entry.get('item') if isinstance(entry, dict) else None)
+                    if item is not None:
+                        payload[group].append(item)
+        except (SoloistError, ValueError, TypeError, AttributeError):
+            payload.update(previous=[], upcoming=[], error='Spotify queue unavailable. Retrying…')
+        self._publish_queue(payload)
 
     def _snapshot(self) -> dict[str, Any]:
         try:
@@ -103,6 +177,7 @@ class Spotify(plugin.Plugin):
                 self.send_busy()
             else:
                 self.send_idle()
+            self._poll_queue(snapshot)
             self._report(self._state.capitalize() if self._device_active
                          else 'Ready', self._track if self._device_active else '')
         except (SoloistError, AttributeError) as error:
@@ -126,10 +201,11 @@ class Spotify(plugin.Plugin):
                 self.send_idle()
             return
         try:
-            uri = playlist_uri(params.get('key', ''))
+            uri = playable_uri(params.get('key', ''))
             self._active = True
             self._command('activate')
             self._command('play', uri)
+            self._next_queue_poll = 0
             self.send_busy()
             self._report('Starting playback')
         except (ValueError, SoloistError) as error:
@@ -145,6 +221,7 @@ class Spotify(plugin.Plugin):
                 # A phone may have transferred Spotify to another speaker.
                 return
             self._command(command, *arguments)
+            self._next_queue_poll = 0
             if command == 'play':
                 self.send_busy()
             # CLI success means dispatched, not confirmed; on_tick reports

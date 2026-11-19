@@ -58,6 +58,15 @@
                     </div>
                 </fieldset>
             </form>
+            <details id="spotify_queue_section" $spotify_queue_open>
+                <summary>Tracks in the current Spotify queue</summary>
+                <p>Spotify supplies the loaded queue, which may contain only part of a playlist.
+                   Play track starts the chosen track individually.</p>
+                <label for="spotify_queue_filter">Filter tracks by title or artist</label>
+                <input type="search" id="spotify_queue_filter" placeholder="Filter tracks…"/>
+                <p id="spotify_queue_matches" role="status"></p>
+                <div id="spotify_queue" data-revision="$spotify_queue_revision">$spotify_queue</div>
+            </details>
         </section>
         <form method="post" action="/playlist">
             <h2>Local playlists</h2>
@@ -85,6 +94,24 @@
     const spotifyState = document.getElementById('spotify_state');
     const spotifyTrack = document.getElementById('spotify_track');
     const spotifyError = document.getElementById('spotify_error');
+    const queueSection = document.getElementById('spotify_queue_section');
+    const queue = document.getElementById('spotify_queue');
+    const queueFilter = document.getElementById('spotify_queue_filter');
+    const queueMatches = document.getElementById('spotify_queue_matches');
+    const filterQueue = () => {
+        const query = queueFilter.value.trim().toLowerCase();
+        let matches = 0;
+        queue.querySelectorAll('[data-search]').forEach(item => {
+            item.hidden = !item.dataset.search.includes(query);
+            if (!item.hidden) matches++;
+        });
+        queueMatches.textContent = query ? matches +
+            (matches === 1 ? ' matching track' : ' matching tracks') : '';
+    };
+    queueFilter.addEventListener('input', filterQueue);
+    queueSection.addEventListener('toggle', () => {
+        if (queueSection.open) queue.dataset.revision = '';
+    });
     const setText = (element, text) => {
         if (element.textContent !== text) element.textContent = text;
     };
@@ -107,6 +134,18 @@
             setText(spotifyState, status.spotify_state || 'Disabled');
             setText(spotifyTrack, status.spotify_track || '');
             setText(spotifyError, status.spotify_error || '');
+            const revision = status.spotify_queue_revision || '0';
+            if (queueSection.open && queue.dataset.revision !== revision &&
+                    !queue.contains(document.activeElement)) {
+                const tracks = await fetch('/spotify/queue', {
+                    cache: 'no-store', signal: controller.signal
+                });
+                if (!tracks.ok) throw new Error('Queue request failed');
+                // The server renders and escapes all metadata in this fragment.
+                queue.innerHTML = await tracks.text();
+                queue.dataset.revision = revision;
+                filterQueue();
+            }
             connection.hidden = true;
         } catch (error) {
             setText(state, 'Unavailable');

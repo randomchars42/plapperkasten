@@ -4,6 +4,7 @@
 
 import errno
 import http.server
+import json
 import os
 import pathlib
 from plapperkastenserver import config as plkserverconfig
@@ -101,6 +102,20 @@ class Server(plugin.Plugin):
         self.register_for('rfid_read')
         self.register_for('autoshutdown_status')
         self.register_for('spotify_status')
+        self.register_for('spotify_queue')
+
+    def on_spotify_queue(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Cache queue snapshots for the HTTP thread without blocking requests."""
+        if not self._spotify_enabled:
+            return
+        try:
+            data = json.loads(params.get('data', ''))
+            if not isinstance(data, dict):
+                return
+            self._server.update_spotify_queue(data)
+        except (ValueError, TypeError):
+            logger.warning('received an invalid spotify queue snapshot')
 
     def on_spotify_status(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument

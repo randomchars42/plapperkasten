@@ -564,7 +564,7 @@ class Plapperkasten:
         # whose passthrough list overrides the application defaults.
         if new or event.name in passthrough or event.name in (
                 'autoshutdown_pause', 'autoshutdown_resume',
-                'autoshutdown_status', 'rfid_read', 'spotify_status',
+                'autoshutdown_status', 'rfid_read', 'spotify_status', 'spotify_queue',
                 'load_source', 'play', 'pause', 'resume', 'toggle', 'stop',
                 'next', 'previous', 'volume', 'volume_max', 'volume_increase',
                 'volume_decrease', 'toggle_pwwp_sink'):

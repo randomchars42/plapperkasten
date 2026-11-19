@@ -34,6 +34,14 @@ def playlist_uri(value: str) -> str:
     return f'spotify:playlist:{match.group(1)}'
 
 
+def playable_uri(value: str) -> str:
+    """Accept a playlist link or a track/episode URI supplied by Soloist."""
+    value = value.strip()
+    if re.fullmatch(r'spotify:(?:track|episode):[A-Za-z0-9]{22}', value):
+        return value
+    return playlist_uri(value)
+
+
 def favorites_path(config: Config) -> Path:
     """Resolve the favorites file relative to the user configuration."""
     directory = Path(config.get_str('core', 'paths', 'user_directory',

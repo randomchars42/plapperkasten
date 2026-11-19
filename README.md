@@ -119,6 +119,20 @@ under `~/.config/systemd/user/`. Enable it with
 directory when switching from a manual run to the service, and stop the manual
 process first.
 
+Expand **Tracks in the current Spotify queue** in the Playlists tab to browse
+the current track, upcoming tracks, and playback history. A text filter matches
+titles and artists. **Play track** starts a listed track individually on the
+box; it does not jump to that position within the original playlist. Queue
+updates use the existing Soloist CLI and require no additional authorization.
+
+This shows the queue supplied by Spotify, which may be only part of a playlist.
+The default limit is 1,000 upcoming tracks; set `plugins.spotify.queue_limit`
+to change it (maximum 5,000). Queue snapshots refresh every 10 seconds and when
+the current track changes. Set `plugins.spotify.interval_queue` to adjust that
+interval. Browsing an arbitrary playlist before it is loaded is not supported.
+For the same data in a shell, use
+`soloist ctl queue 1000 --json --ws 127.0.0.1:9090`.
+
 Soloist builds expire after 90 days, so update the executable from Spotify
 regularly and restart its service. The binary and API key are not distributed
 with Plapperkasten. See Spotify's
