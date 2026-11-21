@@ -75,13 +75,17 @@ class Plapperkasten:
                 'core', 'events', 'passthrough', default=[])
             self.load_plugins(config)
             self._eventmap: eventmap.EventMap = eventmap.EventMap(config)
+            self._starting_plugins = {
+                plugin.get_name().lower() for plugin in self._plugins
+                if plugin.get_name().lower() in ('soundpwwp', 'soundalsa')}
 
             for plugin in self._plugins:
                 logger.debug('starting process %s', plugin.get_name())
                 plugin.start()
 
-            self.emit('finished_loading')
-            self.all_idle()
+            if not self._starting_plugins:
+                self.emit('finished_loading')
+                self.all_idle()
 
             while self._plugins and not self._terminate_signal:
                 for plugin in self._plugins[:]:
@@ -569,6 +573,16 @@ class Plapperkasten:
                 'next', 'previous', 'volume', 'volume_max', 'volume_increase',
                 'volume_decrease', 'toggle_pwwp_sink'):
             self.emit(event.name, *event.values, **event.params)
+
+    def on_plugin_ready(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        """Announce startup after the volume backend finishes initialization."""
+        if not values or values[0] not in self._starting_plugins:
+            return
+        self._starting_plugins.remove(values[0])
+        if not self._starting_plugins:
+            self.emit('finished_loading')
+            self.all_idle()
 
     def on_busy(self, *values: str, **params: str) -> None:
         # pylint: disable=unused-argument

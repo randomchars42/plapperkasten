@@ -3,6 +3,8 @@ plugins:
   soundpwwp:
     # the initial maximal volume [%]
     max: 100
+    # Applied to the selected output before the startup sound, capped by max.
+    startup_volume: 30
     # the step to increase / decrease volume [% of total]
     step: 5
     # the sink to set at startup (`node.name` or 'default')

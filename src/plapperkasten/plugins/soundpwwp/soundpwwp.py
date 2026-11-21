@@ -43,6 +43,8 @@ class Soundpwwp(plugin.Plugin):
                                                   'soundpwwp',
                                                   'step',
                                                   default=5)
+        self._startup_volume = config.get_int(
+            'plugins', 'soundpwwp', 'startup_volume', default=30)
         self._default_sink: str = config.get_str('plugins',
                                                   'soundpwwp',
                                                   'default_sink',
@@ -68,8 +70,12 @@ class Soundpwwp(plugin.Plugin):
         self._supports_volume_limit = '--limit' in self.wpctl('set-volume', '--help')
         self.query_sinks()
         self.query_current_sink()
-        self.set_max_volume(self._max_volume)
         self.toggle_sink(self._default_sink)
+        self.set_max_volume(self._max_volume)
+        target = min(self._max_volume, max(0, self._startup_volume))
+        self.set_volume(target)
+        if self.query_volume(strict=True) != target:
+            raise RuntimeError('Could not confirm the startup volume.')
         logger.debug('current volume: %s', str(self.query_volume()))
 
     def on_volume_increase(self, *values: str, **params: str) -> None:
@@ -168,7 +174,7 @@ class Soundpwwp(plugin.Plugin):
 
         return result.stdout
 
-    def query_volume(self) -> int:
+    def query_volume(self, strict: bool = False) -> int:
         """ Retrieve the current volume from Wireplumber.
 
         Returns:
@@ -181,8 +187,10 @@ class Soundpwwp(plugin.Plugin):
         if not result is None:
             # at the moment, wpctl is incoherrent as it takes volume in % but
             # gives it in fractions
-            volume: int = int(float(result.groupdict()['volume']) * 100)
+            volume: int = round(float(result.groupdict()['volume']) * 100)
         else:
+            if strict:
+                raise RuntimeError('Could not confirm the startup volume.')
             volume = self._max_volume
         logger.debug('current volume: %s', str(volume))
         return volume

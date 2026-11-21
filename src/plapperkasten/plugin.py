@@ -181,6 +181,7 @@ class Plugin(multiprocessing.Process):
 
         try:
             self.on_before_run()
+            self.send_to_main('plugin_ready', self.get_name().lower())
             next_tick = time.monotonic() + self._tick_interval
             while not self._terminate_signal:
                 try:

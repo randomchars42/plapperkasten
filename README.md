@@ -168,6 +168,11 @@ for installation, pairing and updates.
 
 ### Held volume buttons
 
+The PipeWire output starts at 30% before the ready sound. Set
+`plugins.soundpwwp.startup_volume` to choose another startup level; the maximum
+volume still caps it. Startup waits for the volume backend to finish and
+confirm its setting before playing the sound.
+
 The standard volume pins (13 and 24) repeat every 100 ms while held. Other
 buttons keep the 300 ms repeat interval. Adjust `plugins.inputgpiod.press_pulse_intervals`
 in your configuration if your volume buttons use different pins, or override
