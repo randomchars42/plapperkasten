@@ -16,7 +16,7 @@ from plapperkasten.event import Event
 from plapperkasten.plapperkasten import Plapperkasten
 from plapperkasten.plugins.server.server import Server
 from plapperkasten.plugins.spotify.spotify import Spotify
-from plapperkasten.spotify_sources import Favorites, playlist_uri
+from plapperkasten.spotify_sources import Favorites, collection_uri, playlist_uri
 
 # Unit tests have no logging consumer process.
 logging.getLogger().handlers.clear()
@@ -25,6 +25,9 @@ logging.getLogger().handlers.clear()
 PLAYLIST_ID = '37i9dQZF1DXcBWIGoYBM5M'
 URI = f'spotify:playlist:{PLAYLIST_ID}'
 LINK = f'https://open.spotify.com/playlist/{PLAYLIST_ID}?si=example'
+ALBUM_ID = '12tbwMFeUIvYg3dxKbCb8N'
+ALBUM_URI = f'spotify:album:{ALBUM_ID}'
+ALBUM_LINK = f'https://open.spotify.com/album/{ALBUM_ID}?si=example&utm_source=copy-link'
 TRACK_URI = 'spotify:track:' + 'A' * 22
 NEXT_URI = 'spotify:track:' + 'B' * 22
 
@@ -72,6 +75,33 @@ class FakeSoloist:
 
 
 class FavoritesTests(unittest.TestCase):
+    def test_album_share_links_and_uris_normalize_without_network_requests(self):
+        for value in (ALBUM_LINK, ALBUM_URI,
+                      f'https://open.spotify.com/intl-de/album/{ALBUM_ID}/'):
+            with self.subTest(value=value):
+                self.assertEqual(collection_uri(value), ALBUM_URI)
+        self.assertEqual(collection_uri(LINK), URI)
+        with self.assertRaises(ValueError):
+            playlist_uri(ALBUM_LINK)
+
+    def test_album_support_keeps_the_host_and_item_type_restrictions(self):
+        for value in (f'https://open.spotify.com.evil/album/{ALBUM_ID}',
+                      f'https://user@open.spotify.com/album/{ALBUM_ID}',
+                      f'http://open.spotify.com/album/{ALBUM_ID}',
+                      f'https://open.spotify.com/track/{ALBUM_ID}',
+                      f'https://open.spotify.com/album/{ALBUM_ID}/extra',
+                      ALBUM_URI + ';shutdown'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                collection_uri(value)
+
+    def test_albums_and_existing_playlists_survive_favorite_reloads(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'favorites.yaml'
+            Favorites(path).save('Existing playlist', LINK)
+            Favorites(path).save('Hörspiel album', ALBUM_LINK)
+            self.assertEqual(Favorites(path).load(), {
+                'Existing playlist': URI, 'Hörspiel album': ALBUM_URI})
+
     def test_share_links_and_uris_normalize_without_network_requests(self):
         for value in (URI, LINK, f'https://open.spotify.com/intl-de/playlist/{PLAYLIST_ID}/',
                       f'  {URI}  '):
@@ -414,7 +444,7 @@ class SpotifyWebTests(unittest.TestCase):
         _, _, page = self.request(path=headers['Location'].split('#')[0])
         self.assertIn('id="tab_4" checked', page)
         self.assertIn('Play Bedtime', page)
-        self.assertIn('Playlist saved.', page)
+        self.assertIn('Favorite saved.', page)
         self.assertEqual(self.request('POST', '/spotify',
                                      {'action': 'play', 'favorite': 'Bedtime'})[0], 303)
         self.relay()
@@ -449,6 +479,26 @@ class SpotifyWebTests(unittest.TestCase):
             self.relay()
             self.assertEqual(observer.get_nowait().name, 'volume' if action == '50' else action)
 
+    def test_album_can_be_saved_reloaded_played_and_removed(self):
+        self.request('POST', '/spotify',
+                     {'action': 'save', 'playlist': LINK, 'name': 'Playlist'})
+        status, headers, _ = self.request('POST', '/spotify',
+                                         {'action': 'save', 'playlist': ALBUM_LINK,
+                                          'name': 'Album'})
+        self.assertEqual(status, 303)
+        _, _, page = self.request(path=headers['Location'].split('#')[0])
+        self.assertIn('Favorite saved.', page)
+        self.assertIn('Play Album', page)
+        favorites = Favorites(Path(self.directory.name) / 'spotify_favorites.yaml')
+        self.assertEqual(favorites.load(), {'Playlist': URI, 'Album': ALBUM_URI})
+        self.assertTrue(self.outgoing.empty())
+        self.assertEqual(self.request('POST', '/spotify',
+                                     {'action': 'play', 'favorite': 'Album'})[0], 303)
+        self.relay()
+        self.assertIn(['play', ALBUM_URI], self.fake.commands)
+        self.request('POST', '/spotify', {'action': 'remove', 'favorite': 'Album'})
+        self.assertEqual(favorites.load(), {'Playlist': URI})
+
     def test_invalid_forms_are_rejected_before_dispatch_or_file_changes(self):
         for body in ('action=play&action=save&playlist=' + URI,
                      urlencode({'action': 'play', 'playlist': 'https://evil.test'}),
@@ -472,6 +522,19 @@ class SpotifyWebTests(unittest.TestCase):
         self.server._server.spotify_enabled = False
         self.assertEqual(self.request('POST', '/spotify',
                                      {'action': 'play', 'playlist': URI})[0], 503)
+        self.assertTrue(self.outgoing.empty())
+
+    def test_invalid_playlist_stays_in_the_form_with_name_and_helpful_error(self):
+        link = 'https://example.test/playlist?name="<bad>"'
+        name = 'Bedtime & "Stories"'
+        status, _, page = self.request('POST', '/spotify',
+                                      {'action': 'save', 'playlist': link, 'name': name})
+        self.assertEqual(status, 400)
+        self.assertIn('id="tab_4" checked', page)
+        self.assertIn('id="spotify_form_error" role="alert">Enter a Spotify playlist or album link or URI.', page)
+        self.assertIn('value="https://example.test/playlist?name=&quot;&lt;bad&gt;&quot;"', page)
+        self.assertIn('value="Bedtime &amp; &quot;Stories&quot;"', page)
+        self.assertNotIn('<h1>Error 400', page)
         self.assertTrue(self.outgoing.empty())
 
     def test_queue_fragment_and_track_selection_use_real_routing(self):

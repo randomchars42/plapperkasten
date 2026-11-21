@@ -58,17 +58,20 @@
                 <p id="spotify_queue_matches" role="status"></p>
                 <div id="spotify_queue" data-revision="$spotify_queue_revision">$spotify_queue</div>
             </section>
-            <h3>Saved playlists</h3>
+            <h3>Saved favorites</h3>
             <p role="status">$spotify_favorites_error</p>
             $spotify_favorites
+            <p id="spotify_form_error" role="alert">$spotify_form_error</p>
             <form method="post" action="/spotify" class="spotify_form">
                 <fieldset $spotify_disabled>
-                    <legend>Choose a Spotify playlist</legend>
-                    <label for="spotify_playlist">Playlist link</label>
+                    <legend>Choose a Spotify playlist or album</legend>
+                    <label for="spotify_playlist">Playlist or album link</label>
                     <input type="text" id="spotify_playlist" name="playlist" required
+                           value="$spotify_playlist_value"
                            placeholder="https://open.spotify.com/playlist/…"/>
-                    <label for="spotify_name">Name for saved playlist (optional when playing)</label>
-                    <input type="text" id="spotify_name" name="name" maxlength="120"/>
+                    <label for="spotify_name">Name for saved favorite (optional when playing)</label>
+                    <input type="text" id="spotify_name" name="name" maxlength="120"
+                           value="$spotify_name_value"/>
                     <div class="row_stretch">
                         <button type="submit" name="action" value="play" class="item">Play on Plapperkasten</button>
                         <button type="submit" name="action" value="save" class="item">Save favorite</button>

@@ -1,4 +1,4 @@
-"""Spotify playlist links and the user's saved favorites."""
+"""Spotify playlist and album links and the user's saved favorites."""
 
 import os
 from pathlib import Path
@@ -11,35 +11,43 @@ import yaml
 from plapperkasten.config import Config
 
 
-def playlist_uri(value: str) -> str:
-    """Normalize a Spotify playlist URI or a full Spotify share link.
+def collection_uri(value: str) -> str:
+    """Normalize a Spotify playlist or album URI or full share link.
 
     Links are parsed locally; no URL is fetched or passed to a shell.
     """
     value = value.strip()
     if any(char.isspace() for char in value):
-        raise ValueError('Enter a Spotify playlist link or URI.')
-    match = re.fullmatch(r'spotify:playlist:([A-Za-z0-9]{22})', value)
+        raise ValueError('Enter a Spotify playlist or album link or URI.')
+    match = re.fullmatch(r'spotify:(playlist|album):([A-Za-z0-9]{22})', value)
     if not match:
         try:
             url = urlsplit(value)
         except ValueError as error:
-            raise ValueError('Enter a Spotify playlist link or URI.') from error
+            raise ValueError('Enter a Spotify playlist or album link or URI.') from error
         if url.scheme == 'https' and url.netloc == 'open.spotify.com':
             match = re.fullmatch(
-                r'/(?:intl-[A-Za-z-]+/)?playlist/([A-Za-z0-9]{22})/?',
+                r'/(?:intl-[A-Za-z-]+/)?(playlist|album)/([A-Za-z0-9]{22})/?',
                 url.path)
     if not match:
+        raise ValueError('Enter a Spotify playlist or album link or URI.')
+    return f'spotify:{match.group(1)}:{match.group(2)}'
+
+
+def playlist_uri(value: str) -> str:
+    """Retain the playlist-only helper for existing callers."""
+    uri = collection_uri(value)
+    if not uri.startswith('spotify:playlist:'):
         raise ValueError('Enter a Spotify playlist link or URI.')
-    return f'spotify:playlist:{match.group(1)}'
+    return uri
 
 
 def playable_uri(value: str) -> str:
-    """Accept a playlist link or a track/episode URI supplied by Soloist."""
+    """Accept a playlist/album link or a track/episode URI from Soloist."""
     value = value.strip()
     if re.fullmatch(r'spotify:(?:track|episode):[A-Za-z0-9]{22}', value):
         return value
-    return playlist_uri(value)
+    return collection_uri(value)
 
 
 def favorites_path(config: Config) -> Path:
@@ -68,29 +76,29 @@ class Favorites:
             if data is None:
                 return {}
             if not isinstance(data, dict):
-                raise ValueError('Favorites must contain playlist names and links.')
+                raise ValueError('Favorites must contain names and Spotify links.')
             favorites = {}
             for name, uri in data.items():
                 self.validate_name(name)
                 if not isinstance(uri, str):
-                    raise ValueError('Each favorite needs a Spotify playlist link.')
-                favorites[name] = playlist_uri(uri)
+                    raise ValueError('Each favorite needs a Spotify playlist or album link.')
+                favorites[name] = collection_uri(uri)
             return favorites
         except (yaml.YAMLError, UnicodeError) as error:
-            raise ValueError('Could not read saved Spotify playlists.') from error
+            raise ValueError('Could not read saved Spotify favorites.') from error
 
     @staticmethod
     def validate_name(name: str) -> None:
         """Require a short, single-line label, including non-ASCII names."""
         if (not isinstance(name, str) or not name.strip() or
                 len(name) > 120 or any(ord(char) < 32 for char in name)):
-            raise ValueError('Enter a playlist name of 1 to 120 characters.')
+            raise ValueError('Enter a favorite name of 1 to 120 characters.')
 
     def save(self, name: str, uri: str) -> None:
         """Add a favorite, replacing an existing favorite with the same name."""
         name = name.strip()
         self.validate_name(name)
-        uri = playlist_uri(uri)
+        uri = collection_uri(uri)
         favorites = self.load()
         favorites[name] = uri
         self._write(favorites)
@@ -99,7 +107,7 @@ class Favorites:
         """Remove a known favorite without affecting playback."""
         favorites = self.load()
         if name not in favorites:
-            raise ValueError('This saved playlist no longer exists.')
+            raise ValueError('This saved favorite no longer exists.')
         del favorites[name]
         self._write(favorites)
 

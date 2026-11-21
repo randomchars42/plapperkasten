@@ -19,7 +19,7 @@ import threading
 from typing import Any, Match, Optional
 
 from plapperkasten import event as plkevent
-from plapperkasten.spotify_sources import Favorites, playlist_uri
+from plapperkasten.spotify_sources import Favorites, collection_uri
 
 class SimpleTemplatePage(htmltemplate.HTMLTemplate):
     """A demo page."""
@@ -132,7 +132,9 @@ class RequestHandler(HTTPRequestHandler):
                      request: Request,
                      response: Response,
                      headers_only: bool,
-                     name: str = '') -> None:
+                     name: str = '',
+                     spotify_form: dict[str, str] | None = None,
+                     spotify_form_error: str = '') -> None:
         """Display an upload form.
 
         Args:
@@ -276,11 +278,13 @@ class RequestHandler(HTTPRequestHandler):
             'Active' if paused is False else 'Unavailable')
         template.variables['pause_disabled'] = '' if paused is False else 'disabled'
         template.variables['resume_disabled'] = '' if paused is True else 'disabled'
-        self.spotify_variables(template, request, status)
+        self.spotify_variables(template, request, status, spotify_form, spotify_form_error)
         response.set_body(template.compile())
 
     def spotify_variables(self, template: SimpleTemplatePage, request: Request,
-                          status: dict[str, str | bool | None]) -> None:
+                          status: dict[str, str | bool | None],
+                          form: dict[str, str] | None = None,
+                          form_error: str = '') -> None:
         """Render favorites as forms that also work without JavaScript."""
         favorite_forms = ''
         favorites_error = ''
@@ -297,12 +301,17 @@ class RequestHandler(HTTPRequestHandler):
                     f'<button type="submit" name="action" value="remove" '
                     f'aria-label="Remove {escaped}" {disabled}>Remove</button></form>')
             if not favorites:
-                favorite_forms = '<p>No saved Spotify playlists yet.</p>'
+                favorite_forms = '<p>No saved Spotify favorites yet.</p>'
         except (OSError, ValueError, UnicodeError):
-            favorites_error = 'Saved Spotify playlists could not be read.'
+            favorites_error = 'Saved Spotify favorites could not be read.'
         template.variables['spotify_favorites'] = favorite_forms
         template.variables['spotify_favorites_error'] = favorites_error
         template.variables['spotify_disabled'] = disabled
+        template.variables['spotify_form_error'] = html.escape(form_error)
+        template.variables['spotify_playlist_value'] = html.escape(
+            (form or {}).get('playlist', ''), quote=True)
+        template.variables['spotify_name_value'] = html.escape(
+            (form or {}).get('name', ''), quote=True)
         template.variables['spotify_state'] = html.escape(str(
             status.get('spotify_state') or 'Disabled'))
         template.variables['spotify_track'] = html.escape(str(
@@ -311,13 +320,13 @@ class RequestHandler(HTTPRequestHandler):
             status.get('spotify_error') or ''))
         query = {field.name: field.value for field in request.query}
         messages = {
-            'saved': 'Playlist saved.',
-            'removed': 'Playlist removed.',
+            'saved': 'Favorite saved.',
+            'removed': 'Favorite removed.',
             'requested': 'Playback requested. Check the Spotify status below.',
             'track_requested': 'Track playback requested.',
         }
         template.variables['spotify_message'] = messages.get(str(query.get('spotify', '')), '')
-        selected = str(query.get('tab', 'actions'))
+        selected = 'spotify' if form_error else str(query.get('tab', 'actions'))
         if selected not in ('actions', 'playlists', 'spotify', 'speak'):
             selected = 'actions'
         for tab in ('actions', 'playlists', 'spotify', 'speak'):
@@ -374,7 +383,7 @@ class RequestHandler(HTTPRequestHandler):
             if previous:
                 content += '</details>'
         if not count:
-            content += '<p>No tracks are loaded. Choose a Spotify playlist first.</p>'
+            content += '<p>No tracks are loaded. Choose a Spotify playlist or album first.</p>'
         limit = data.get('limit')
         if isinstance(limit, int) and len(data['upcoming']) >= limit:
             content += f'<p>Showing up to {limit} upcoming tracks.</p>'
@@ -392,7 +401,7 @@ class RequestHandler(HTTPRequestHandler):
     def spotify_playlist(self, request: Request, response: Response,
                          headers_only: bool) -> None:
         # pylint: disable=unused-argument
-        """Save, play or remove one playlist; accept only known form fields."""
+        """Save, play or remove one favorite; accept only known form fields."""
         if not self.server.spotify_enabled:
             raise HTTPError('Spotify playback is not enabled.',
                             http.HTTPStatus.SERVICE_UNAVAILABLE)
@@ -433,13 +442,13 @@ class RequestHandler(HTTPRequestHandler):
                 elif action == 'play':
                     saved = favorites.load()
                     if name not in saved:
-                        raise ValueError('This saved playlist no longer exists.')
+                        raise ValueError('This saved favorite no longer exists.')
                     self.server.send_to_main('load_source', use='Spotify', key=saved[name])
                     result = 'requested'
                 else:
                     raise ValueError('Unknown Spotify action.')
             else:
-                uri = playlist_uri(fields.get('playlist', ''))
+                uri = collection_uri(fields.get('playlist', ''))
                 if action == 'save':
                     favorites.save(fields.get('name', ''), uri)
                     result = 'saved'
@@ -449,9 +458,12 @@ class RequestHandler(HTTPRequestHandler):
                 else:
                     raise ValueError('Unknown Spotify action.')
         except (ValueError, UnicodeError) as error:
-            raise HTTPError(str(error), http.HTTPStatus.BAD_REQUEST) from error
+            self.display_main(request, response, False, spotify_form=fields,
+                              spotify_form_error=str(error))
+            response.set_status(http.HTTPStatus.BAD_REQUEST)
+            return
         except OSError as error:
-            raise HTTPError('Saved Spotify playlists could not be updated.',
+            raise HTTPError('Saved Spotify favorites could not be updated.',
                             http.HTTPStatus.SERVICE_UNAVAILABLE) from error
         response.set_status(http.HTTPStatus.SEE_OTHER)
         anchor = 'spotify_queue_section' if result == 'track_requested' else 'spotify'

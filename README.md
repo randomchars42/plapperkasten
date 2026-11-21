@@ -50,10 +50,10 @@ targets, playlist titles wrap onto multiple lines, and percentage controls use
 a compact grid. The layout adapts to phone widths without a frontend framework
 or additional dependencies. Normal browser zoom remains available.
 
-### Spotify playlists
+### Spotify favorites
 
-The **Spotify** tab can play a pasted Spotify playlist link and save named
-favorites. Saved playlists have **Play** and **Remove** buttons. Saving or
+The **Spotify** tab can play a pasted Spotify playlist or album link and save
+named favorites. Saved favorites have **Play** and **Remove** buttons. Saving or
 removing a favorite does not interrupt playback. Saving the same name again
 updates its link. The existing player buttons, GPIO buttons and volume controls
 work with the selected playback source, including Spotify.
@@ -91,15 +91,16 @@ Spotify API key, a Web API app, or an additional OAuth login.
    ```
 
 4. Open the existing web interface, select **Spotify**, and paste a full
-   `https://open.spotify.com/playlist/...` share link. Choose **Play on
+   `https://open.spotify.com/playlist/...` or `https://open.spotify.com/album/...`
+   share link. Choose **Play on
    Plapperkasten**, or enter a name and choose **Save favorite**. Spotify URI
-   values (`spotify:playlist:...`) also work. Short `spotify.link` URLs must
-   first be opened in a browser to obtain their full playlist link.
+   values (`spotify:playlist:...` and `spotify:album:...`) also work. Short
+   `spotify.link` URLs must first be opened in a browser to obtain their full link.
 
 Favorites are stored in `~/.config/plapperkasten/spotify_favorites.yaml` by
 default. Set `plugins.spotify.filename_favorites` to change the filename; a
 relative path is resolved against `core.paths.user_directory`. The file is a
-YAML mapping of names to playlist URIs and may also be edited while the server
+YAML mapping of names to playlist or album URIs and may also be edited while the server
 is running. Changes made in the browser survive service restarts.
 
 The page reports Soloist's confirmed playback status, current track and
