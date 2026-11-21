@@ -1,6 +1,7 @@
 """Control a local Spotify Soloist service with the existing player events."""
 
 import json
+import re
 import subprocess
 import time
 from typing import Any
@@ -47,6 +48,16 @@ class Spotify(plugin.Plugin):
         self._next_queue_poll = 0.0
         self._queue_key = ('', '')
         self._last_queue = ''
+        self._shared_volume = config.get_bool(
+            'plugins', 'spotify', 'shared_volume', default=False)
+        self._volume_max = min(100, max(0, config.get_int(
+            'plugins', 'soundpwwp', 'max', default=100)))
+        self._last_output_volume: int | None = None
+        self._last_player_volume: int | None = None
+        self._pending_volume: int | None = None
+        self._volume_deadline = 0.0
+        if self._shared_volume:
+            self.register_for('volume_max')
         for event in ('load_source', 'play', 'pause', 'resume', 'toggle',
                       'stop', 'next', 'previous'):
             self.register_for(event)
@@ -76,8 +87,75 @@ class Spotify(plugin.Plugin):
                               error=error)
             self._last_report = report
 
+    def _pipewire(self, *arguments: str) -> str:
+        try:
+            return subprocess.run(
+                ['wpctl', *arguments], capture_output=True, text=True,
+                check=True, timeout=self._timeout).stdout
+        except (OSError, subprocess.SubprocessError) as error:
+            raise SoloistError('Shared volume control is unavailable.') from error
+
+    def _set_player_volume(self, target: int, current: int) -> None:
+        if target == current:
+            self._pending_volume = None
+            return
+        self._command('volume', str(target))
+        self._pending_volume = target
+        self._volume_deadline = time.monotonic() + 3
+
+    def _sync_volume(self, snapshot: dict[str, Any]) -> None:
+        """Use the output mixer for both sources; ignore delayed CLI echoes.
+
+        Soloist's PipeWire stream must be locked at unity gain so its reported
+        volume is a control value rather than another stage of attenuation.
+        """
+        player = snapshot.get('volume')
+        if isinstance(player, bool) or not isinstance(player, int) or not 0 <= player <= 100:
+            raise SoloistError('Spotify returned an invalid volume.')
+        output = re.match(r'Volume: ([0-9.]+)', self._pipewire(
+            'get-volume', '@DEFAULT_AUDIO_SINK@'))
+        if output is None:
+            raise SoloistError('Shared volume control is unavailable.')
+        master = round(float(output.group(1)) * 100)
+        target = min(self._volume_max, max(0, master))
+        if (master != self._last_output_volume or not snapshot['is_active'] or
+                target != master):
+            # The box wins on startup and whenever its controls change.
+            if target != master:
+                self._pipewire('set-volume', '@DEFAULT_AUDIO_SINK@', f'{target}%')
+            self._set_player_volume(target, player)
+        elif self._pending_volume is not None and player != self._pending_volume:
+            if time.monotonic() < self._volume_deadline:
+                return
+            if player == self._last_player_volume:
+                self._set_player_volume(self._pending_volume, player)
+                return
+            # A fresh phone change can supersede an unconfirmed command.
+            self._pending_volume = None
+            target = min(self._volume_max, player)
+            if target != master:
+                self._pipewire('set-volume', '@DEFAULT_AUDIO_SINK@', f'{target}%')
+            self._set_player_volume(target, player)
+        elif player != self._last_player_volume:
+            # Includes a confirmed echo, which needs no mixer write.
+            target = min(self._volume_max, player)
+            if target != master:
+                self._pipewire('set-volume', '@DEFAULT_AUDIO_SINK@', f'{target}%')
+            self._set_player_volume(target, player)
+        self._last_output_volume = target
+        self._last_player_volume = player
+
+    def on_volume_max(self, *values: str, **params: str) -> None:
+        # pylint: disable=unused-argument
+        try:
+            self._volume_max = min(100, max(0, int(values[0])))
+        except (IndexError, ValueError):
+            return
+
     def _failed(self, error: Exception) -> None:
         self._device_active = False
+        self._last_output_volume = self._last_player_volume = None
+        self._pending_volume = None
         self.send_idle()
         self._publish_queue({'previous': [], 'current': None, 'upcoming': [],
                              'context': '', 'error': 'Spotify queue unavailable.'})
@@ -167,6 +245,12 @@ class Spotify(plugin.Plugin):
             return
         try:
             snapshot = self._snapshot()
+            volume_error = ''
+            if self._shared_volume:
+                try:
+                    self._sync_volume(snapshot)
+                except SoloistError as error:
+                    volume_error = str(error)
             self._state = snapshot['status']
             self._device_active = snapshot['is_active']
             item = snapshot.get('item') or {}
@@ -179,7 +263,8 @@ class Spotify(plugin.Plugin):
                 self.send_idle()
             self._poll_queue(snapshot)
             self._report(self._state.capitalize() if self._device_active
-                         else 'Ready', self._track if self._device_active else '')
+                         else 'Ready', self._track if self._device_active else '',
+                         volume_error)
         except (SoloistError, AttributeError) as error:
             self._failed(SoloistError('Spotify returned an invalid playback status.')
                          if isinstance(error, AttributeError) else error)

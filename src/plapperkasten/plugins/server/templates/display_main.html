@@ -7,7 +7,9 @@
     <label for="tab_1">Actions</label>
     <input type="radio" name="tabs" id="tab_2" $playlists_checked/>
     <label for="tab_2">Playlists</label>
-    <input type="radio" name="tabs" id="tab_3"/>
+    <input type="radio" name="tabs" id="tab_4" $spotify_checked/>
+    <label for="tab_4">Spotify</label>
+    <input type="radio" name="tabs" id="tab_3" $speak_checked/>
     <label for="tab_3">Speak</label>
     <div id="content_tab_1" class="content">
         <form method="post" action="/action">
@@ -35,12 +37,27 @@
         </form>
     </div>
     <div id="content_tab_2" class="content">
+        <form method="post" action="/playlist">
+            <h2>Local playlists</h2>
+            $playlists
+        </form>
+    </div>
+    <div id="content_tab_4" class="content">
         <section id="spotify">
             <h2>Spotify</h2>
             <p role="status">$spotify_message</p>
             <p>Status: <span id="spotify_state" role="status">$spotify_state</span></p>
             <p id="spotify_track">$spotify_track</p>
             <p id="spotify_error" role="status">$spotify_error</p>
+            <section id="spotify_queue_section" aria-labelledby="spotify_queue_heading">
+                <h3 id="spotify_queue_heading">Current Spotify queue</h3>
+                <p>Spotify supplies the loaded queue, which may contain only part of a playlist.
+                   Play track starts the chosen track individually.</p>
+                <label for="spotify_queue_filter">Filter tracks by title or artist</label>
+                <input type="search" id="spotify_queue_filter" placeholder="Filter tracks…"/>
+                <p id="spotify_queue_matches" role="status"></p>
+                <div id="spotify_queue" data-revision="$spotify_queue_revision">$spotify_queue</div>
+            </section>
             <h3>Saved playlists</h3>
             <p role="status">$spotify_favorites_error</p>
             $spotify_favorites
@@ -58,20 +75,7 @@
                     </div>
                 </fieldset>
             </form>
-            <details id="spotify_queue_section" $spotify_queue_open>
-                <summary>Tracks in the current Spotify queue</summary>
-                <p>Spotify supplies the loaded queue, which may contain only part of a playlist.
-                   Play track starts the chosen track individually.</p>
-                <label for="spotify_queue_filter">Filter tracks by title or artist</label>
-                <input type="search" id="spotify_queue_filter" placeholder="Filter tracks…"/>
-                <p id="spotify_queue_matches" role="status"></p>
-                <div id="spotify_queue" data-revision="$spotify_queue_revision">$spotify_queue</div>
-            </details>
         </section>
-        <form method="post" action="/playlist">
-            <h2>Local playlists</h2>
-            $playlists
-        </form>
     </div>
     <div id="content_tab_3" class="content">
         <form method="post" action="/speak">
@@ -94,7 +98,6 @@
     const spotifyState = document.getElementById('spotify_state');
     const spotifyTrack = document.getElementById('spotify_track');
     const spotifyError = document.getElementById('spotify_error');
-    const queueSection = document.getElementById('spotify_queue_section');
     const queue = document.getElementById('spotify_queue');
     const queueFilter = document.getElementById('spotify_queue_filter');
     const queueMatches = document.getElementById('spotify_queue_matches');
@@ -109,9 +112,6 @@
             (matches === 1 ? ' matching track' : ' matching tracks') : '';
     };
     queueFilter.addEventListener('input', filterQueue);
-    queueSection.addEventListener('toggle', () => {
-        if (queueSection.open) queue.dataset.revision = '';
-    });
     const setText = (element, text) => {
         if (element.textContent !== text) element.textContent = text;
     };
@@ -135,14 +135,16 @@
             setText(spotifyTrack, status.spotify_track || '');
             setText(spotifyError, status.spotify_error || '');
             const revision = status.spotify_queue_revision || '0';
-            if (queueSection.open && queue.dataset.revision !== revision &&
+            if (queue.dataset.revision !== revision &&
                     !queue.contains(document.activeElement)) {
                 const tracks = await fetch('/spotify/queue', {
                     cache: 'no-store', signal: controller.signal
                 });
                 if (!tracks.ok) throw new Error('Queue request failed');
                 // The server renders and escapes all metadata in this fragment.
+                const scrollPosition = queue.scrollTop;
                 queue.innerHTML = await tracks.text();
+                queue.scrollTop = scrollPosition;
                 queue.dataset.revision = revision;
                 filterQueue();
             }

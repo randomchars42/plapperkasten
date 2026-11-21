@@ -148,6 +148,31 @@ class WebStatusTests(unittest.TestCase):
         self.assertIn('application/json', headers['Content-Type'])
         return json.loads(body)
 
+    def test_page_revalidates_and_loads_versioned_stylesheets(self):
+        status, headers, page = self.request('GET', '/main?tab=spotify')
+        self.assertEqual(status, 200)
+        self.assertEqual(headers['Cache-Control'], 'no-cache')
+
+        class Stylesheets(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.urls = []
+
+            def handle_starttag(self, tag, attributes):
+                attributes = dict(attributes)
+                if tag == 'link' and attributes.get('rel') == 'stylesheet':
+                    self.urls.append(attributes['href'])
+
+        stylesheets = Stylesheets()
+        stylesheets.feed(page)
+        self.assertEqual(len(stylesheets.urls), 2)
+        for url in stylesheets.urls:
+            self.assertIn('?v=', url)
+            status, _, css = self.request('GET', '/' + url)
+            self.assertEqual(status, 200)
+            if url.startswith('style.css?'):
+                self.assertIn('#tab_4:checked ~ #content_tab_4', css)
+
     def read_card(self, card_id):
         """Feed digit key presses and ENTER through the actual reader decoder."""
         config_path = Path(plapperkasten.__file__).parent / 'plugins/inputdevinputevent/config.yaml'
@@ -228,6 +253,19 @@ class WebStatusTests(unittest.TestCase):
         self.relay_events()
         self.assertEqual(player.get_nowait().name, 'play')
         self.assertEqual(self.status()['last_rfid_card'], '00222')
+
+    def test_five_percent_web_presets_route_to_the_shared_volume_control(self):
+        observer = queue.Queue()
+        self.core._queues_to_plugins['volume_observer'] = observer
+        self.core.register('volume', 'volume_observer')
+        status, _, page = self.request('GET', '/main')
+        self.assertEqual(status, 200)
+        for level in (0, 5, 15, 25):
+            self.assertIn(f'name="{level}" value="{level} %"', page)
+            self.assertEqual(self.request('POST', '/action', urlencode({str(level): f'{level} %'}))[0], 200)
+            self.relay_events()
+            event = observer.get_nowait()
+            self.assertEqual((event.name, event.values), ('volume', [str(level)]))
 
     def test_playlist_button_escapes_long_titles_and_submits_the_mapping_id(self):
         title = 'Die drei ??? – Ein langes Abenteuer & "Freunde" <Band 1>'

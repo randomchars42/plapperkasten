@@ -42,7 +42,7 @@ class Soundpwwp(plugin.Plugin):
         self._step: int = config.get_int('plugins',
                                                   'soundpwwp',
                                                   'step',
-                                                  default=1)
+                                                  default=5)
         self._default_sink: str = config.get_str('plugins',
                                                   'soundpwwp',
                                                   'default_sink',

@@ -8,7 +8,7 @@ import queue
 import subprocess
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from urllib.parse import urlencode
 
 from plapperkasten.config import Config
@@ -64,6 +64,8 @@ class FakeSoloist:
             self.snapshot['status'] = 'playing'
         elif command[0] == 'pause':
             self.snapshot['status'] = 'paused'
+        elif command[0] == 'volume':
+            self.snapshot['volume'] = int(command[1])
         output = (json.dumps(self.snapshot) if command[0] == 'now' else
                   json.dumps(self.queue) if command[0] == 'queue' else '')
         return subprocess.CompletedProcess(arguments, 0, output, '')
@@ -253,6 +255,101 @@ class SpotifyTests(unittest.TestCase):
         self.assertEqual(events[-1].params['state'], 'Ready')
 
 
+class SharedVolumeTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        config = Config(self.directory.name)
+        config.set_bool('plugins', 'spotify', 'enabled', value=True)
+        config.set_bool('plugins', 'spotify', 'shared_volume', value=True)
+        config.set_int('plugins', 'soundpwwp', 'max', value=50)
+        self.plugin = Spotify('Spotify', config, queue.Queue(), queue.Queue())
+        self.fake = FakeSoloist()
+        self.fake.snapshot.update(volume=44, is_active=True, status='paused')
+        patcher = patch('plapperkasten.plugins.spotify.spotify.subprocess.run', self.fake)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.master = 15
+
+        def pipewire(*args):
+            if args[0] == 'get-volume':
+                return f'Volume: {self.master / 100:.2f}\n'
+            self.master = int(args[-1].removesuffix('%'))
+            return ''
+
+        self.plugin._pipewire = Mock(side_effect=pipewire)
+
+    def settle(self):
+        self.plugin.on_tick()
+        self.plugin.on_tick()
+
+    def test_startup_uses_quiet_box_level_and_box_changes_update_spotify(self):
+        self.settle()
+        self.assertEqual(self.master, 15)
+        self.assertEqual(self.fake.snapshot['volume'], 15)
+        self.master = 20
+        self.settle()
+        self.assertEqual(self.fake.snapshot['volume'], 20)
+        self.assertFalse(any(args.args[0] == 'set-volume'
+                             for args in self.plugin._pipewire.call_args_list))
+
+    def test_phone_changes_the_shared_output_without_a_feedback_loop(self):
+        self.settle()
+        self.plugin._pipewire.reset_mock()
+        self.fake.snapshot['volume'] = 25
+        self.settle()
+        self.assertEqual(self.master, 25)
+        writes = [entry for entry in self.plugin._pipewire.call_args_list
+                  if entry.args[0] == 'set-volume']
+        self.assertEqual(writes, [call('set-volume', '@DEFAULT_AUDIO_SINK@', '25%')])
+
+    def test_phone_respects_maximum_and_zero_maximum(self):
+        self.settle()
+        self.fake.snapshot['volume'] = 90
+        self.settle()
+        self.assertEqual((self.master, self.fake.snapshot['volume']), (50, 50))
+        self.plugin.on_volume_max('0')
+        self.settle()
+        self.assertEqual((self.master, self.fake.snapshot['volume']), (0, 0))
+
+    def test_inactive_device_inherits_box_volume(self):
+        self.settle()
+        self.fake.snapshot.update(is_active=False, volume=80)
+        self.settle()
+        self.assertEqual((self.master, self.fake.snapshot['volume']), (15, 15))
+
+    def test_delayed_spotify_echo_cannot_raise_the_output(self):
+        original = self.plugin._command
+
+        def delayed(*args):
+            if args[0] == 'volume':
+                return ''
+            return original(*args)
+
+        self.plugin._command = delayed
+        self.settle()
+        self.assertEqual(self.master, 15)
+        self.fake.snapshot['volume'] = 15
+        self.settle()
+        self.assertEqual(self.master, 15)
+        self.assertIsNone(self.plugin._pending_volume)
+
+    def test_reconnect_inherits_output_instead_of_daemon_startup_volume(self):
+        self.settle()
+        self.fake.failure = FileNotFoundError()
+        self.plugin.on_tick()
+        self.fake.failure = None
+        self.fake.snapshot['volume'] = 40
+        self.settle()
+        self.assertEqual((self.master, self.fake.snapshot['volume']), (15, 15))
+
+    def test_invalid_volume_leaves_output_unchanged(self):
+        self.fake.snapshot['volume'] = True
+        self.plugin.on_tick()
+        self.assertEqual(self.master, 15)
+        self.plugin._pipewire.assert_not_called()
+
+
 class SpotifyWebTests(unittest.TestCase):
     def setUp(self):
         self.directory = TemporaryDirectory()
@@ -315,7 +412,7 @@ class SpotifyWebTests(unittest.TestCase):
         favorites = Favorites(Path(self.directory.name) / 'spotify_favorites.yaml')
         self.assertEqual(favorites.load(), {'Bedtime': URI})
         _, _, page = self.request(path=headers['Location'].split('#')[0])
-        self.assertIn('id="tab_2" checked', page)
+        self.assertIn('id="tab_4" checked', page)
         self.assertIn('Play Bedtime', page)
         self.assertIn('Playlist saved.', page)
         self.assertEqual(self.request('POST', '/spotify',
@@ -398,6 +495,7 @@ class SpotifyWebTests(unittest.TestCase):
                                          {'action': 'track', 'track': NEXT_URI})
         self.assertEqual(status, 303)
         self.assertIn('#spotify_queue_section', headers['Location'])
+        self.assertIn('tab=spotify', headers['Location'])
         self.relay()
         self.assertIn(['play', NEXT_URI], self.fake.commands)
         self.assertTrue(self.player.is_busy())

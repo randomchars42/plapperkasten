@@ -3,6 +3,7 @@
 """
 
 import errno
+import hashlib
 import http.server
 import json
 import os
@@ -148,9 +149,10 @@ class Server(plugin.Plugin):
                 path_text_blocks=self._path_espeak_text_blocks,
                 spotify_enabled='true' if self._spotify_enabled else 'false',
                 path_spotify_favorites=str(self._path_spotify_favorites))
-        cfg.html_css_default.append('normalize.css')
-        #cfg.html_css_default.append('milligram.min.css')
-        cfg.html_css_default.append('style.css')
+        for stylesheet in ('normalize.css', 'style.css'):
+            revision = hashlib.sha256(
+                (cfg.path_www / stylesheet).read_bytes()).hexdigest()[:12]
+            cfg.html_css_default.append(f'{stylesheet}?v={revision}')
 
         retry_until = time.monotonic() + 60
         while not self._terminate_signal:

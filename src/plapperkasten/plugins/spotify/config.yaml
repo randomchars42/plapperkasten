@@ -10,5 +10,7 @@ plugins:
     interval_queue: 10
     queue_limit: 1000
     command_timeout: 3
+    # Requires examples/soloist-pipewire.conf to avoid applying volume twice.
+    shared_volume: false
     # Relative to core.paths.user_directory, or an absolute path.
     filename_favorites: 'spotify_favorites.yaml'

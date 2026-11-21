@@ -140,6 +140,7 @@ class RequestHandler(HTTPRequestHandler):
             response: The response to build.
             headers_only: Omit the body?
         """
+        response.add_header('Cache-Control', 'no-cache')
         if headers_only:
             response.set_status(http.HTTPStatus.OK)
             return
@@ -227,12 +228,9 @@ class RequestHandler(HTTPRequestHandler):
                     f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
         controls_volume += '</div>'
         controls_volume += '<div id="sound_controls_2" class="row_stretch">'
-        for action in [('10', '10 %'), ('20', '20 %'), ('30', '30 %'),
-                       ('40', '40 %'), ('50', '50 %'), ('60', '60 %'),
-                       ('70', '70 %'), ('80', '80 %'), ('90', '90 %'),
-                       ('100', '100 %')]:
+        for percent in range(0, 101, 5):
             controls_volume += f"<input type=\"submit\" class=\"item\" "\
-                    f"name=\"{action[0]}\" value=\"{action[1]}\"/></li>"
+                    f"name=\"{percent}\" value=\"{percent} %\"/>"
         controls_volume += '</div>'
 
         controls_volume_max: str = '<div id="sound_max" class="row_stretch">'
@@ -319,14 +317,14 @@ class RequestHandler(HTTPRequestHandler):
             'track_requested': 'Track playback requested.',
         }
         template.variables['spotify_message'] = messages.get(str(query.get('spotify', '')), '')
-        playlist_tab = query.get('tab') == 'playlists'
-        template.variables['actions_checked'] = '' if playlist_tab else 'checked'
-        template.variables['playlists_checked'] = 'checked' if playlist_tab else ''
+        selected = str(query.get('tab', 'actions'))
+        if selected not in ('actions', 'playlists', 'spotify', 'speak'):
+            selected = 'actions'
+        for tab in ('actions', 'playlists', 'spotify', 'speak'):
+            template.variables[f'{tab}_checked'] = 'checked' if tab == selected else ''
         template.variables['spotify_queue'] = self.spotify_queue_html()
         template.variables['spotify_queue_revision'] = str(
             status.get('spotify_queue_revision') or '0')
-        template.variables['spotify_queue_open'] = (
-            'open' if query.get('spotify') == 'track_requested' else '')
 
     def spotify_queue_html(self) -> str:
         """Render the same escaped fragment for initial load and live updates."""
@@ -457,7 +455,7 @@ class RequestHandler(HTTPRequestHandler):
                             http.HTTPStatus.SERVICE_UNAVAILABLE) from error
         response.set_status(http.HTTPStatus.SEE_OTHER)
         anchor = 'spotify_queue_section' if result == 'track_requested' else 'spotify'
-        response.add_header('Location', f'/main?tab=playlists&spotify={result}#{anchor}')
+        response.add_header('Location', f'/main?tab=spotify&spotify={result}#{anchor}')
         response.set_body('')
 
     def display_status(self,
@@ -581,8 +579,7 @@ class RequestHandler(HTTPRequestHandler):
         for item in request.data:
             if item.value == '':
                 continue
-            if item.name in ['10', '20', '30', '40', '50', '60', '70',
-                             '80', '90', '100']:
+            if item.name in {str(percent) for percent in range(0, 101, 5)}:
                 self.server.send_to_main('volume', item.name)
             elif item.name in ['max_10', 'max_20', 'max_30', 'max_40', 'max_50',
                                'max_60', 'max_70', 'max_80', 'max_90',

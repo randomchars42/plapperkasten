@@ -149,7 +149,8 @@ textarea:focus-visible, .tabs > input:focus-visible + label,
 
 #tab_1:checked ~ #content_tab_1,
 #tab_2:checked ~ #content_tab_2,
-#tab_3:checked ~ #content_tab_3 {
+#tab_3:checked ~ #content_tab_3,
+#tab_4:checked ~ #content_tab_4 {
     display: block;
 }
 
@@ -241,6 +242,15 @@ textarea:focus-visible, .tabs > input:focus-visible + label,
 
 #spotify_queue_section {
     margin: 1.5rem 0;
+}
+
+#spotify_queue {
+    max-height: 32rem;
+    max-height: min(60vh, 32rem);
+    max-height: min(60svh, 32rem);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    padding-inline-end: 0.35rem;
 }
 
 #spotify_queue_section summary {

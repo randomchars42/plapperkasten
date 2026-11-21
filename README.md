@@ -52,7 +52,7 @@ or additional dependencies. Normal browser zoom remains available.
 
 ### Spotify playlists
 
-The **Playlists** tab can play a pasted Spotify playlist link and save named
+The **Spotify** tab can play a pasted Spotify playlist link and save named
 favorites. Saved playlists have **Play** and **Remove** buttons. Saving or
 removing a favorite does not interrupt playback. Saving the same name again
 updates its link. The existing player buttons, GPIO buttons and volume controls
@@ -90,7 +90,7 @@ Spotify API key, a Web API app, or an additional OAuth login.
        endpoint: '127.0.0.1:9090'
    ```
 
-4. Open the existing web interface, select **Playlists**, and paste a full
+4. Open the existing web interface, select **Spotify**, and paste a full
    `https://open.spotify.com/playlist/...` share link. Choose **Play on
    Plapperkasten**, or enter a name and choose **Save favorite**. Spotify URI
    values (`spotify:playlist:...`) also work. Short `spotify.link` URLs must
@@ -119,15 +119,41 @@ under `~/.config/systemd/user/`. Enable it with
 directory when switching from a manual run to the service, and stop the manual
 process first.
 
-Expand **Tracks in the current Spotify queue** in the Playlists tab to browse
-the current track, upcoming tracks, and playback history. A text filter matches
+To switch the Spotify account used for playback, stop `soloist.service`, then
+run Soloist as the same Linux user with the same data directory and `--pair`.
+Keep the existing API key. In the Spotify app, sign in to the account that
+should play on the box, connect to the same network, and select **Plapperkasten**
+in the device picker. Pair mode replaces the stored Spotify Connect session and
+exits after pairing; start `soloist.service` again afterward. The API key and
+playback account are separate. See Spotify's
+[authentication guide](https://developer.spotify.com/documentation/soloist/concepts/authentication).
+
+To share one volume between Spotify's phone slider, the box buttons, and RFID
+playback on a native PipeWire setup, install
+[examples/soloist-pipewire.conf](examples/soloist-pipewire.conf) as
+`~/.config/pipewire/client.conf.d/60-plapperkasten-spotify-volume.conf` for the
+user running Soloist. Then enable `plugins.spotify.shared_volume: true` and set
+`plugins.spotify.interval_poll: 1`. Restart Soloist and Plapperkasten at a low
+output volume. The PipeWire rule holds Spotify's stream at unity gain while
+Plapperkasten synchronizes its phone slider with the shared output mixer;
+Spotify volume changes also respect `plugins.soundpwwp.max` and changes to the
+web maximum. Enable this only with that rule and the `soundpwwp` backend.
+The box and web minus/plus buttons use `plugins.soundpwwp.step` (5 percentage
+points by default). Web presets are also available every 5 percentage points.
+
+The **Spotify** tab always shows the loaded queue near the top, including while
+playback is paused. Browse the current track and upcoming tracks, or expand
+playback history. The queue scrolls independently to keep favorites and the
+playlist form accessible. A text filter matches
 titles and artists. **Play track** starts a listed track individually on the
 box; it does not jump to that position within the original playlist. Queue
 updates use the existing Soloist CLI and require no additional authorization.
 
 This shows the queue supplied by Spotify, which may be only part of a playlist.
-The default limit is 1,000 upcoming tracks; set `plugins.spotify.queue_limit`
-to change it (maximum 5,000). Queue snapshots refresh every 10 seconds and when
+Plapperkasten requests up to 1,000 upcoming tracks by default; set
+`plugins.spotify.queue_limit` to change the requested limit (maximum 5,000).
+Spotify currently documents metadata for up to 80 upcoming tracks, so a larger
+request does not guarantee a complete playlist. Queue snapshots refresh every 10 seconds and when
 the current track changes. Set `plugins.spotify.interval_queue` to adjust that
 interval. Browsing an arbitrary playlist before it is loaded is not supported.
 For the same data in a shell, use

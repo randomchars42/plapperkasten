@@ -4,7 +4,7 @@ plugins:
     # the initial maximal volume [%]
     max: 100
     # the step to increase / decrease volume [% of total]
-    step: 1
+    step: 5
     # the sink to set at startup (`node.name` or 'default')
     # find the `node.name` using `pw-cli ls Node`
     # 'default' -> @DEFAULT_AUDIO_SINK@
