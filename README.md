@@ -174,6 +174,10 @@ The PipeWire output starts at 30% before the ready sound. Set
 volume still caps it. Startup waits for the volume backend to finish and
 confirm its setting before playing the sound.
 
+Volume feedback uses one short tone with faded edges to avoid sharp clicks.
+Web controls redirect after submission, so refreshing the page does not repeat
+the volume change or its feedback sound.
+
 The standard volume pins (13 and 24) repeat every 100 ms while held. Other
 buttons keep the 300 ms repeat interval. Adjust `plugins.inputgpiod.press_pulse_intervals`
 in your configuration if your volume buttons use different pins, or override

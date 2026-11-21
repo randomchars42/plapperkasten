@@ -52,5 +52,5 @@ plugins:
       error: '331381__qubodup__public-domain-jump-sound.wav'
       # sound on feedback
       feedback: '531510__eponn__correct-blips.wav'
-      # sound on beep
-      beep: '560188__anthonychartier2020__beep-3.wav'
+      # Short synthesized volume cue with faded edges (project Unlicense).
+      beep: 'volume-step.wav'

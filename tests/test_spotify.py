@@ -475,7 +475,7 @@ class SpotifyWebTests(unittest.TestCase):
         event = observer.get_nowait()
         self.assertEqual(event.params, {'use': 'Spotify', 'key': URI})
         for action in ('play', 'pause', 'stop', 'next', 'previous', '50'):
-            self.assertEqual(self.request('POST', '/action', {action: action})[0], 200)
+            self.assertEqual(self.request('POST', '/action', {action: action})[0], 303)
             self.relay()
             self.assertEqual(observer.get_nowait().name, 'volume' if action == '50' else action)
 

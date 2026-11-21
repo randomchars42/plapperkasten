@@ -1,3 +1,4 @@
 prune tests
 include examples/*.service
 include examples/*.conf
+include tools/generate_volume_step.py

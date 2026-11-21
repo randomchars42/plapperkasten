@@ -215,7 +215,7 @@ class WebStatusTests(unittest.TestCase):
         self.relay_events()
         self.assertIs(self.status()['autoshutdown_paused'], False)
         status, _, _ = self.request('POST', '/action', 'autoshutdown_pause=Pause')
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 303)
         self.assertIs(self.status()['autoshutdown_paused'], False)
         self.relay_events()
         self.assertTrue(self.autoshutdown._paused)
@@ -225,7 +225,7 @@ class WebStatusTests(unittest.TestCase):
         self.assertIn('>Paused</span>', page)
         self.assertIn("fetch('/api/status'", page)
         status, _, _ = self.request('POST', '/action', 'autoshutdown_resume=Resume')
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 303)
         self.relay_events()
         self.assertFalse(self.autoshutdown._paused)
         self.assertIs(self.status()['autoshutdown_paused'], False)
@@ -262,10 +262,27 @@ class WebStatusTests(unittest.TestCase):
         self.assertEqual(status, 200)
         for level in (0, 5, 15, 25):
             self.assertIn(f'name="{level}" value="{level} %"', page)
-            self.assertEqual(self.request('POST', '/action', urlencode({str(level): f'{level} %'}))[0], 200)
+            self.assertEqual(self.request('POST', '/action', urlencode({str(level): f'{level} %'}))[0], 303)
             self.relay_events()
             event = observer.get_nowait()
             self.assertEqual((event.name, event.values), ('volume', [str(level)]))
+
+    def test_volume_click_redirects_and_page_refresh_does_not_repeat_it(self):
+        observer = queue.Queue()
+        self.core._queues_to_plugins['volume_observer'] = observer
+        self.core.register('volume_decrease', 'volume_observer')
+        status, headers, body = self.request('POST', '/action', 'volume_decrease=-')
+        self.assertEqual(status, 303)
+        self.assertEqual(headers['Location'], '/main?tab=actions')
+        self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertEqual(body, '')
+        self.relay_events()
+        self.assertEqual(observer.get_nowait().name, 'volume_decrease')
+        for _ in range(2):
+            self.assertEqual(self.request('GET', headers['Location'])[0], 200)
+            self.relay_events()
+        self.assertTrue(observer.empty())
+        self.assertTrue(self.outgoing.empty())
 
     def test_playlist_button_escapes_long_titles_and_submits_the_mapping_id(self):
         title = 'Die drei ??? – Ein langes Abenteuer & "Freunde" <Band 1>'

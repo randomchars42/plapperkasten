@@ -605,4 +605,7 @@ class RequestHandler(HTTPRequestHandler):
             else:
                 raise HTTPError('unknown action', http.HTTPStatus.BAD_REQUEST)
 
-        self.display_main(request, response, headers_only)
+        response.set_status(http.HTTPStatus.SEE_OTHER)
+        response.add_header('Location', '/main?tab=actions')
+        response.add_header('Cache-Control', 'no-store')
+        response.set_body('')

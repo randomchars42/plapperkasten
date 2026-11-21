@@ -37,3 +37,7 @@
 ;CCby
 ;by anthonychartier2020
 ;https://freesound.org/people/anthonychartier2020/sounds/560188/
+
+;volume-step.wav
+;Generated for Plapperkasten under the project's Unlicense.
+;Reproduce with tools/generate_volume_step.py (standard library only).
